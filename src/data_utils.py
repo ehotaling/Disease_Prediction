@@ -27,23 +27,26 @@ def clean_diseases_symptoms(df: pd.DataFrame) -> pd.DataFrame:
 
     Steps:
       1. Drop empty columns and any unnamed columns.
-      2. Clean the 'Symptoms' column:
-         - Split the string by commas and strip extra spaces.
-      3. Clean the 'Treatments' column:
-         - Similarly split and strip text.
-         - Fill in missing values with "No Treatment Provided".
+      2. Clean the 'Name', 'Symptoms', and 'Treatments' columns.
+         - For 'Name': Strip extra spaces and standardize the case.
+         - For 'Symptoms': Split by commas and strip extra spaces.
+         - For 'Treatments': Similarly split, strip, and fill missing values.
     """
     # Remove unnecessary columns
     df = drop_empty_columns(df)
     df = drop_unnamed_columns(df)
 
-    # Clean the 'Symptoms' column if it exists
+    # Clean the 'Name' column if it exists: strip spaces
+    if 'Name' in df.columns:
+        df['Name'] = df['Name'].apply(lambda x: x.strip() if isinstance(x, str) else x)
+
+    # Clean the 'Symptoms' column
     if 'Symptoms' in df.columns:
         df['Symptoms'] = df['Symptoms'].apply(
             lambda x: ", ".join([sym.strip() for sym in x.split(",")]) if isinstance(x, str) else x
         )
 
-    # Clean the 'Treatments' column if it exists
+    # Clean the 'Treatments' column
     if 'Treatments' in df.columns:
         df['Treatments'] = df['Treatments'].apply(
             lambda x: ", ".join([t.strip() for t in x.split(",")]) if isinstance(x, str) else x
