@@ -1,0 +1,122 @@
+# Disease Prediction from Symptoms (Data Mining Project)
+
+This project builds a multi-class disease classifier using symptom data. The trained model can predict the most likely disease given a set of symptoms and return a recommended treatment using fuzzy matching. This project is part of a data mining learning initiative and includes Python scripts for data cleaning, feature selection, model training, and prediction via a CLI interface.
+
+---
+
+##  Project Structure
+
+```
+Disease_Prediction/
+├── data/                  # Contains raw .csv datasets
+│   ├── training_data.csv
+│   └── Diseases_Symptoms.csv
+├── models/                # Stores pre-trained model (Random Forest)
+│   └── rf_model.pkl
+├── src/                   # Python scripts (all core logic lives here)
+│   ├── data_utils.py
+│   ├── clean_data.py
+│   ├── feature_selection.py
+│   ├── model_training.py
+│   ├── prediction_mapping.py
+│   └── predict_cli.py
+├── README.md
+└── requirements.txt
+```
+
+---
+
+##  Requirements
+
+Install required Python packages:
+
+```bash
+pip install -r requirements.txt
+```
+
+Minimum requirements:
+
+- pandas
+- numpy
+- scikit-learn
+- matplotlib
+- joblib
+- torch
+- rapidfuzz
+
+---
+
+##  Order of Execution
+
+Here is the recommended order for running the scripts:
+
+1. **clean_data.py** *(optional for EDA)*
+   
+   Run this to explore the dataset and confirm that your files are formatted and cleaned properly.
+
+   ```bash
+   python src/clean_data.py
+   ```
+
+2. **feature_selection.py** *(optional)*
+
+   ```bash
+   python src/feature_selection.py
+   ```
+
+   Identifies the most predictive symptoms using:
+
+   - Chi-Squared Scores
+   - Random Forest Feature Importances
+
+3. **model_training.py**
+
+   Trains 3 classifiers:
+
+   - Logistic Regression
+   - Random Forest  (Saved as rf_model.pkl)
+   - MLP using PyTorch
+
+   Automatically saves the trained Random Forest model in `models/rf_model.pkl`.
+
+   ```bash
+   python src/model_training.py
+   ```
+
+4. **predict_cli.py**
+
+   Interactive command-line interface for real-time symptom prediction:
+
+   - Accepts user input (symptoms)
+   - Predicts disease using pre-trained Random Forest model
+   - Uses fuzzy matching to return the closest treatment recommendation
+
+   ```bash
+   python src/predict_cli.py
+   ```
+
+   **Example:**
+   ```
+   Enter symptoms (comma-separated): fatigue, nausea, high-fever
+   ```
+
+---
+
+##  What You'll Learn
+
+- Binary encoding of symptoms for supervised learning
+- Feature selection with Chi² and Random Forest
+- Multi-class classification using scikit-learn & PyTorch
+- Model persistence using joblib
+- CLI interface development
+
+
+---
+
+##  Future Ideas
+
+- Turn `predict_cli.py` into a web app using Streamlit or Flask
+- Add support for probabilistic confidence scores
+- Extend to include real patient data and lab results
+- Export predictions and logs to a file for audit/history
+
