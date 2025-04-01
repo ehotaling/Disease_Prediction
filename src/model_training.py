@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -5,12 +6,15 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
 from data_utils import load_and_clean_data
+import joblib  # For saving the model
 
 # ============================================================
 # File: model_training.py
 # Purpose: Build and evaluate multiple classification models
 #          to predict disease based on symptom data.
 #          We use Logistic Regression, Random Forest, and an MLP (via PyTorch).
+#          This script now also saves the pre-trained Random Forest model
+#          to disk so it can be used by predict_cli.py.
 # ============================================================
 
 # -----------------------------
@@ -25,13 +29,13 @@ y = df['prognosis']
 
 # ---------------------------------------------------------------
 # Unified factorization of the target labels:
-# We factorize the entire target column once so that both the
-# training and test sets use the same mapping.
+# Factorize the entire target column once so that both the training
+# and test sets use the same mapping.
 # ---------------------------------------------------------------
 y_encoded, uniques = pd.factorize(y)
-print("Target classes:", uniques)
+print("Target classes:", uniques.tolist())
 
-# Split the data into training and testing sets using the unified encoding
+# Split the data into training and testing sets (80/20 split)
 X_train, X_test, y_train_encoded, y_test_encoded = train_test_split(
     X, y_encoded, test_size=0.2, random_state=42
 )
@@ -39,13 +43,11 @@ X_train, X_test, y_train_encoded, y_test_encoded = train_test_split(
 # -----------------------------
 # Model 1: Logistic Regression (scikit-learn)
 # -----------------------------
-# Logistic Regression is a linear model suitable for multi-class classification.
 print("=== Logistic Regression ===")
 lr_model = LogisticRegression(max_iter=1000, multi_class='multinomial', solver='lbfgs')
 lr_model.fit(X_train, y_train_encoded)  # Train the model
 y_pred_lr = lr_model.predict(X_test)  # Predict on the test set
 
-# Calculate accuracy and display a detailed classification report
 acc_lr = accuracy_score(y_test_encoded, y_pred_lr)
 print("Logistic Regression Accuracy: {:.2f}%".format(acc_lr * 100))
 print("Classification Report:\n", classification_report(y_test_encoded, y_pred_lr))
@@ -53,7 +55,6 @@ print("Classification Report:\n", classification_report(y_test_encoded, y_pred_l
 # -----------------------------
 # Model 2: Random Forest Classifier (scikit-learn)
 # -----------------------------
-# Random Forest is an ensemble method using multiple decision trees.
 print("\n=== Random Forest Classifier ===")
 rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
 rf_model.fit(X_train, y_train_encoded)
@@ -63,9 +64,21 @@ print("Random Forest Accuracy: {:.2f}%".format(acc_rf * 100))
 print("Classification Report:\n", classification_report(y_test_encoded, y_pred_rf))
 
 # -----------------------------
+# Save the Random Forest model to disk
+# -----------------------------
+# We'll save the Random Forest model as it is one of our high-performing models.
+# Ensure that the 'models' directory exists; if not, create it.
+model_dir = "../models"
+if not os.path.exists(model_dir):
+    os.makedirs(model_dir)
+
+model_path = os.path.join(model_dir, "rf_model.pkl")
+joblib.dump(rf_model, model_path)
+print(f"Random Forest model saved to {model_path}")
+
+# -----------------------------
 # Model 3: MLP Classifier using PyTorch
 # -----------------------------
-# We implement a simple Multi-Layer Perceptron (MLP) using PyTorch.
 print("\n=== PyTorch MLP Classifier ===")
 import torch
 import torch.nn as nn
@@ -100,7 +113,7 @@ class MLPClassifier(nn.Module):
         return out
 
 
-# Determine the number of features and classes
+# Determine the number of features and target classes
 input_dim = X_train.shape[1]
 num_classes = len(uniques)
 model = MLPClassifier(input_dim, num_classes)
