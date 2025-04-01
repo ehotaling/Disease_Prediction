@@ -1,6 +1,6 @@
 # Disease Prediction from Symptoms (Data Mining Project)
 
-This project builds a multi-class disease classifier using symptom data. The trained model can predict the most likely disease given a set of symptoms and return a recommended treatment using fuzzy matching. This project is part of a data mining learning initiative and includes Python scripts for data cleaning, feature selection, model training, and prediction via a CLI interface.
+This project builds a multi-class disease classifier using symptom data. The trained model can predict the most likely disease given a set of symptoms and return a recommended treatment. As of the latest update, the CLI now leverages GPT-4o mini for interpreting user-described symptoms using natural language. This improves user interaction and expands flexibility in symptom input. This project is part of a data mining learning initiative and includes Python scripts for data cleaning, feature selection, model training, and prediction via a CLI interface.
 
 ---
 
@@ -20,6 +20,8 @@ Disease_Prediction/
 │   ├── model_training.py
 │   ├── prediction_mapping.py
 │   └── predict_cli.py
+├── .env                   # Environment variables for API keys
+├── .env.example           # Template for required environment variables
 ├── README.md
 └── requirements.txt
 ```
@@ -43,6 +45,19 @@ Minimum requirements:
 - joblib
 - torch
 - rapidfuzz
+- openai
+- python-dotenv
+
+---
+
+##  Environment Variables
+
+Create a `.env` file at the root of the project with the following contents:
+
+```
+# .env.example
+OPENAI_API_KEY=your_openai_api_key_here
+```
 
 ---
 
@@ -87,9 +102,10 @@ Here is the recommended order for running the scripts:
 
    Interactive command-line interface for real-time symptom prediction:
 
-   - Accepts user input (symptoms)
-   - Predicts disease using pre-trained Random Forest model
-   - Uses fuzzy matching to return the closest treatment recommendation
+   - Accepts user input (natural language symptoms)
+   - Interprets symptoms using GPT-4o mini via OpenAI API
+   - Predicts disease using the pre-trained Random Forest model
+   - Returns the recommended treatment using fuzzy or semantic matching
 
    ```bash
    python src/predict_cli.py
@@ -97,7 +113,10 @@ Here is the recommended order for running the scripts:
 
    **Example:**
    ```
-   Enter symptoms (comma-separated): fatigue, nausea, high-fever
+   Enter your symptoms: I'm nauseous and have been throwing up with chills
+   Interpreted symptoms: nausea, vomiting, chills
+   Predicted Disease: Gastroenteritis
+   Recommended Treatment: Rehydration, rest, and electrolyte replacement
    ```
 
 ---
@@ -109,7 +128,7 @@ Here is the recommended order for running the scripts:
 - Multi-class classification using scikit-learn & PyTorch
 - Model persistence using joblib
 - CLI interface development
-
+- Natural language interpretation using LLMs (GPT-4o mini)
 
 ---
 
@@ -119,4 +138,5 @@ Here is the recommended order for running the scripts:
 - Add support for probabilistic confidence scores
 - Extend to include real patient data and lab results
 - Export predictions and logs to a file for audit/history
+- Incorporate symptom timelines or severity scores
 
