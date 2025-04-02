@@ -19,7 +19,8 @@ Disease_Prediction/
 │   ├── feature_selection.py
 │   ├── model_training.py
 │   ├── prediction_mapping.py
-│   └── predict_cli.py
+│   ├── predict_cli.py
+│   └── validate_mapping.py      # Validates training-treatments alignment
 ├── .env                   # Environment variables for API keys
 ├── .env.example           # Template for required environment variables
 ├── README.md
@@ -84,7 +85,17 @@ Here is the recommended order for running the scripts:
    - Chi-Squared Scores
    - Random Forest Feature Importances
 
-3. **model_training.py**
+3. **validate_mapping.py** *(optional but recommended)*
+
+   Validates that all disease names in the training data match the canonical names in the treatment dataset.
+
+   ```bash
+   python src/validate_mapping.py
+   ```
+
+   Use this to confirm your `prognosis` labels are properly aligned with the treatment data and alias mapping logic.
+
+4. **model_training.py**
 
    Trains 3 classifiers:
 
@@ -98,7 +109,7 @@ Here is the recommended order for running the scripts:
    python src/model_training.py
    ```
 
-4. **predict_cli.py**
+5. **predict_cli.py**
 
    Interactive command-line interface for real-time symptom prediction:
 
@@ -125,10 +136,12 @@ Here is the recommended order for running the scripts:
 
 - Binary encoding of symptoms for supervised learning
 - Feature selection with Chi² and Random Forest
+- Canonical mapping of disease names via normalization and alias resolution
 - Multi-class classification using scikit-learn & PyTorch
 - Model persistence using joblib
 - CLI interface development
 - Natural language interpretation using LLMs (GPT-4o mini)
+- Validation of dataset consistency across multiple sources
 
 ---
 
