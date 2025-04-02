@@ -1,0 +1,51 @@
+ Next Steps
+
+    Refactor CLI to Support Model Choice
+
+        Add selection menu
+
+        Load correct model (joblib or torch)
+
+        Predict, return disease, and treatment
+
+    Persist All Models
+
+        Save logistic model (lr_model.pkl)
+
+        Save MLP weights (mlp_model.pth)
+
+        Implement loader for PyTorch inference
+
+    Expand Feature Selection
+
+        Add mutual info and RFE
+
+        Create merged ranking table
+
+        Highlight overlap between methods
+
+    Improve Model Training
+
+        Use cross-validation
+
+        Tune hyperparameters
+
+        Compare tuned vs. untuned model performance
+
+    Enhance Evaluation
+
+        Confusion matrices
+
+        ROC curves (macro-avg if needed)
+
+        Top-k predictions (top-3 accuracy)
+
+        Per-class analysis: where do each model struggle?
+
+    Final Presentation
+
+        Walk through motivation, methods, improvements
+
+        Add visuals, performance comparisons, and architecture
+
+        Show CLI demo options and results
