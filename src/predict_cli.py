@@ -103,38 +103,42 @@ def symptoms_to_vector(matched_symptoms, feature_list):
 # -----------------------------
 def main():
     print("\nWelcome to the Disease Prediction CLI!")
-    print("Please describe your symptoms in detail.\n")
 
-    # Get user input
-    user_input = input("Enter your symptoms: ")
+    while True:
+        print("\nPlease describe your symptoms in detail.")
+        user_input = input("Enter your symptoms: ")
 
-    # Use GPT-4o mini to interpret the symptoms
-    matched_symptoms = interpret_symptoms_with_gpt(user_input, feature_cols)
+        # Use GPT-4o mini to interpret the symptoms
+        matched_symptoms = interpret_symptoms_with_gpt(user_input, feature_cols)
 
-    if not matched_symptoms:
-        print("Could not interpret the symptoms provided. Please try again.")
-        return
+        if not matched_symptoms:
+            print("Could not interpret the symptoms provided. Please try again.")
+        else:
+            print(f"\nInterpreted symptoms: {', '.join(matched_symptoms)}\n")
 
-    print(f"\nInterpreted symptoms: {', '.join(matched_symptoms)}\n")
+            # Convert matched symptoms to binary vector and then to a DataFrame
+            input_vector = symptoms_to_vector(matched_symptoms, feature_cols).reshape(1, -1)
+            input_df = pd.DataFrame(input_vector, columns=feature_cols)
 
-    # Convert matched symptoms to binary vector and then to a DataFrame to preserve feature names.
-    input_vector = symptoms_to_vector(matched_symptoms, feature_cols).reshape(1, -1)
-    input_df = pd.DataFrame(input_vector, columns=feature_cols)
+            # Predict the disease using the pre-trained model
+            predicted_label = model.predict(input_df)[0]
+            predicted_disease = uniques[predicted_label]
 
-    # Predict the disease using the pre-trained model.
-    predicted_label = model.predict(input_df)[0]
+            # Retrieve recommended treatment
+            treatment_recommendation = get_treatment(predicted_disease)
 
-    # Convert predicted label back to disease name.
-    predicted_disease = uniques[predicted_label]
+            # Display prediction and treatment
+            print("\nPrediction Results:")
+            print("-------------------")
+            print(f"Predicted Disease: {predicted_disease}")
+            print(f"Recommended Treatment: {treatment_recommendation}")
 
-    # Retrieve recommended treatment.
-    treatment_recommendation = get_treatment(predicted_disease)
+        # Ask if user wants to enter another set of symptoms
+        again = input("\nWould you like to enter another set of symptoms? (yes/no): ").strip().lower()
+        if again not in ["yes", "y"]:
+            print("Thank you for using the Disease Prediction CLI. Stay healthy!")
+            break
 
-    # Display prediction and treatment.
-    print("\nPrediction Results:")
-    print("-------------------")
-    print(f"Predicted Disease: {predicted_disease}")
-    print(f"Recommended Treatment: {treatment_recommendation}")
 
 if __name__ == "__main__":
     main()
