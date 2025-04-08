@@ -54,11 +54,12 @@ custom_disease_aliases = {
     "fungal infection": "Fungal Infection of the Skin",
     "gerd": "Gastroesophageal Reflux Disease (GERD)",
     "heart attack": "Coronary Atherosclerosis",
-    "hepatitis a": "Hepatitis due to a Toxin",
-    "hepatitis b": "Hepatitis due to a Toxin",
-    "hepatitis c": "Hepatitis due to a Toxin",
-    "hepatitis d": "Hepatitis due to a Toxin",
-    "hepatitis e": "Hepatitis due to a Toxin",
+    "hepatitis a": "Hepatitis A",
+    "hepatitis b": "Hepatitis B",
+    "hepatitis c": "Hepatitis C",
+    "hepatitis d": "Hepatitis D",
+    "hepatitis e": "Hepatitis E",
+    "alcoholic hepatitis": "Alcoholic Hepatitis",
     "hypertension": "Hypertensive Heart Disease",
     "jaundice": "Neonatal Jaundice",
     "paralysis (brain hemorrhage)": "Intracranial Hemorrhage"
@@ -144,9 +145,8 @@ def clean_training_data(df):
     if unmatched:
         print("\nDropped rows due to unmatched diseases:")
         for u in unmatched:
-            print(f" - {u}")
-        print(f"Total dropped: {len(unmatched)}\n")
-
+           print(f" - {u}")
+    print(f"Total dropped: {len(unmatched)}\n")
     return df
 
 # -----------------------------
