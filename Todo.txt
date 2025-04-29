@@ -30,7 +30,11 @@ Todo List:
 10. Create Limitations & Future Work Section
     - Address 100% accuracy realism, dataset cleanliness, future dataset needs
 
-I. Current Limitations:
+
+
+
+///////// Limitations and Future Work Section Details //////////
+A. Current Limitations:
 
     Dataset is clean, perfectly labeled, and symptom–disease relationships are non-overlapping.
 
@@ -42,7 +46,7 @@ I. Current Limitations:
 
     Thus, models are memorizing clean symptom patterns, not generalizing across messy, real-world ambiguity.
 
-A. Why This Isn't Overfitting:
+B. Why This Isn't Overfitting:
 
     We used a proper 80/20 train-test split.
 
@@ -58,7 +62,7 @@ A. Why This Isn't Overfitting:
 
     Instead, both train and test sets have identical structure, so models can perfectly map symptoms to diseases.
 
-B. Future Work:
+C. Future Work:
 
     Test pipeline on noisier, more realistic medical datasets (symptoms missing, misreported, overlapping diseases)
 
@@ -69,3 +73,8 @@ B. Future Work:
     Build confidence/probability estimates (not just top-1 prediction)
 
     Transition CLI to a web or mobile app for broader usability
+
+D. Summary:
+    Our models achieve 100% accuracy because of the dataset’s ideal structure — clean labels and minimal class overlap.
+    This doesn’t mean our models are overfitting; it shows that the problem space in our dataset is perfectly separable.
+    Future work will focus on generalizing this pipeline to messier, real-world clinical data.
