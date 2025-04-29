@@ -1,6 +1,20 @@
-# Disease Prediction from Symptoms (Data Mining Project)
+# Disease Prediction from Symptoms  
+**Capstone Data Mining Project – Spring 2025**
 
-This project builds a multi-class disease classifier using symptom data. The trained model can predict the most likely disease given a set of symptoms and return a recommended treatment. As of the latest update, the CLI now leverages GPT-4o mini for interpreting user-described symptoms using natural language. This improves user interaction and expands flexibility in symptom input. This project is part of a data mining learning initiative and includes Python scripts for data cleaning, feature selection, model training, and prediction via a CLI interface.
+---
+
+## Project Title  
+**Disease Prediction from Symptoms using Supervised Machine Learning and LLM-enhanced Symptom Interpretation**
+
+---
+
+## Overview  
+This project builds a multi-class disease classifier using symptom data. The trained model can predict the most 
+likely disease given a set of symptoms and return a recommended treatment.
+As of the latest update, the CLI now leverages GPT-4o mini for interpreting user-described symptoms using natural 
+language. This improves user interaction and expands flexibility in symptom input. This project is part of a data 
+mining learning initiative and includes Python scripts for data cleaning, feature selection, model training, 
+and prediction via a CLI interface.
 
 ---
 
@@ -132,24 +146,157 @@ Here is the recommended order for running the scripts:
 
 ---
 
-##  What You'll Learn
+## Dataset Summary  
+- 4920 records  
+- 132 binary symptom features  
+- 40 unique disease classes  
+- Balanced dataset with minimal symptom overlap between classes  
+- Current data is clean and idealized, optimized for learning and classification, but not representative of real-world complexity
 
-- Binary encoding of symptoms for supervised learning
-- Feature selection with Chi² and Random Forest
-- Canonical mapping of disease names via normalization and alias resolution
-- Multi-class classification using scikit-learn & PyTorch
-- Model persistence using joblib
-- CLI interface development
-- Natural language interpretation using LLMs (GPT-4o mini)
-- Validation of dataset consistency across multiple sources
+The dataset used was initially derived from publicly available Kaggle sources. Preprocessing steps included alias resolution for disease labels, column name normalization, and missing value management. A validation script was used to ensure consistent mapping between training and treatment datasets.
 
 ---
 
-##  Future Ideas
+## Motivation  
+- Accelerate symptom-based diagnosis using intelligent automation  
+- Enable early intervention and reduce unnecessary testing  
+- Provide a foundation for scalable medical triage tools  
+- Gain practical experience in supervised learning, NLP integration, and end-to-end model deployment
 
-- Turn `predict_cli.py` into a web app using Streamlit or Flask
-- Add support for probabilistic confidence scores
-- Extend to include real patient data and lab results
-- Export predictions and logs to a file for audit/history
-- Incorporate symptom timelines or severity scores
+---
+
+## Key Objectives  
+1. Data preprocessing and normalization  
+2. Feature selection using Chi-Squared scores and model-based importances  
+3. Model training and evaluation (Random Forest, Logistic Regression, MLP)  
+4. Integration of natural language interpretation into CLI (initially using GPT-4o, later transitioning to T5)  
+5. Mapping predictions to treatment recommendations  
+6. Building a real-time prediction CLI tool  
+7. Presenting the project in a professional, academic format with visuals and metrics
+
+---
+
+## Completed Milestones  
+- Data loaded, cleaned, and preprocessed  
+- EDA completed, including symptom frequency analysis and class distribution  
+- Chi-Squared and Random Forest feature selection conducted  
+- Models trained and evaluated: Random Forest, Logistic Regression, and PyTorch-based MLP  
+- All models achieved 100% test accuracy due to dataset separability  
+- CLI built with GPT-4o mini for natural language symptom interpretation  
+- Predictions mapped to recommended treatments  
+- Model training and evaluation results plotted (accuracy, precision, recall, F1)  
+- Model persistence implemented for Random Forest (`rf_model.pkl`)  
+- Midpoint presentation prepared with live demo
+
+---
+
+## To-Do List (Prioritized)
+
+1. **Integrate T5 Model for Symptom Extraction**  
+   Priority: Top  
+   - Replace GPT-4o with HuggingFace T5 for local, offline symptom interpretation
+
+2. **Refactor CLI to Support Model Choice**  
+   Priority: High  
+   - Allow user to select model (RF, LR, MLP) at runtime
+
+3. **Persist All Models**  
+   Priority: High  
+   - Save Logistic Regression as `lr_model.pkl`  
+   - Save MLP weights as `mlp_model.pth`
+
+4. **Implement PyTorch Model Loader for CLI**  
+   Priority: High  
+   - Add functionality to load MLP for inference within CLI
+
+5. **Expand Feature Selection**  
+   Priority: Medium  
+   - Add Mutual Information and Recursive Feature Elimination (RFE)  
+   - Create merged importance rankings across methods
+
+6. **Improve Model Training**  
+   Priority: Medium  
+   - Apply k-fold cross-validation  
+   - Tune hyperparameters for each model (e.g., grid search or random search)
+
+7. **Enhance Evaluation**  
+   Priority: Low  
+   - Add confusion matrices, ROC curves, top-k (e.g., top-3) predictions  
+   - Conduct per-class analysis to assess where models perform differently
+
+8. **Finalize Presentation Visuals**  
+   Priority: High  
+   - Add system architecture diagrams  
+   - Add saved feature plots and model comparison visuals  
+   - Add CLI flowchart
+
+9. **Polish Final Presentation**  
+   Priority: High  
+   - Improve "Since Last Time" slide  
+   - Streamline walkthrough and structure of final deck  
+   - Ensure CLI demo is clear and illustrative
+
+10. **Create Limitations and Future Work Section**  
+    Priority: Top  
+    - Explicitly address dataset limitations and discuss realistic future extensions
+
+---
+
+## Limitations and Future Work
+
+### A. Current Limitations  
+- Dataset is clean, perfectly labeled, and lacks symptom overlap  
+- Each disease has a distinct combination of symptoms, allowing models to memorize associations without needing deep generalization  
+- The models therefore perform exceptionally well (100% accuracy), but would not retain this performance on noisier, real-world datasets
+
+### B. Why This Is Not Overfitting  
+- Models are evaluated on a withheld 20% test set (never seen during training)  
+- No performance degradation between training and test phases  
+- There is no evidence of high training accuracy and low test accuracy  
+- The feature space is linearly and non-linearly separable, enabling strong generalization *within the scope of this dataset*
+
+### C. Future Work  
+- Test pipeline against real-world or synthetically degraded datasets (with missing, noisy, or ambiguous symptom input)  
+- Introduce symptom uncertainty through randomized omissions or misspellings  
+- Expand to multi-label cases (multiple conditions per patient)  
+- Add probabilistic outputs and confidence scoring for each prediction  
+- Transition CLI to a web or mobile platform (e.g., Flask, Streamlit, or React)  
+- Replace the OpenAI API dependency with a local, open-source model (T5) for offline use and full control
+
+### D. Summary  
+The models demonstrate perfect accuracy due to the dataset’s ideal structure. This does not indicate overfitting, but rather confirms that the models are effectively capturing strong class-separating patterns in the symptom features. The next phase of development will focus on generalizing this architecture to handle uncertainty, noise, and real-world variability.
+
+### E. Note on Feature Reduction and Model Reliability
+While we performed feature selection using Chi-Squared statistics and Random Forest importance to identify the most informative symptoms globally, we chose **not to reduce the input features** used in model training or prediction. This decision was made intentionally to preserve the full diversity of symptom inputs associated with each disease. 
+
+In a multi-class classification problem like disease prediction, some features may appear **unimportant overall**, but may be **critical for correctly classifying specific diseases**, especially those with rare or unique symptoms. Reducing features based solely on global rankings risks removing these **class-specific indicators**, which could significantly degrade the accuracy for certain conditions — even if overall accuracy remains high. Additionally, feature redundancy helps absorb noise and variability in user symptom descriptions, which is particularly important in real-world deployment scenarios.
+
+Therefore, for this phase of the project, we prioritized **maintaining full feature coverage** to ensure maximum diagnostic reliability across all classes. Future iterations may explore controlled feature reduction, but only with rigorous class-wise performance evaluation and careful testing on noisy or real-world datasets.
+
+### F. Dimensionality and the Curse of Dimensionality
+Our dataset has 132 binary symptom features, which constitutes a high-dimensional input space. However, despite the dimensionality, we do **not** suffer from the curse of dimensionality. The dataset is clean, balanced, and features are highly informative — symptoms uniquely map to diseases. Binary features, coupled with clear class boundaries and no noise, create a well-separated decision space.
+
+The models are able to learn strong decision boundaries without the issues of sparsity or degraded distance metrics. We observe no signs of overfitting or learning instability. This means we benefit from high-dimensional input **without the typical drawbacks**, as long as the data remains clean and structured.
+
+Should we move to a more realistic dataset in the future, dimensionality reduction and feature pruning might become more relevant tools to manage noise and improve generalization.
+
+### G. Absence of the Long Tail Problem
+Another typical challenge in multi-class classification is the **long tail problem**, where a few classes dominate the dataset while many others are severely underrepresented. This creates biased learning behavior in most models.
+
+However, this issue does not affect our project because:
+- The dataset is **balanced** — every class (disease) has approximately the same number of samples (~120)
+- There are no rare diseases with too few examples to learn from
+- As a result, the models are not biased toward any "head" class and perform equally well across all 40 classes
+
+This balance makes our dataset uniquely well-suited for evaluation and benchmarking, but it also reinforces the need for future testing on **real-world datasets**, which often suffer from class imbalance and long-tail effects.
+
+---
+
+## Deliverables  
+- Fully functioning Python CLI-based predictor with LLM symptom interpretation  
+- Persisted models for Random Forest, Logistic Regression, and MLP  
+- Bar charts and comparative visuals for accuracy, precision, recall, and F1  
+- Presentation deck with full methodology, results, visualizations, and critical analysis  
+- Clear documentation for both code and findings, readable by instructors and LLMs
+
 
