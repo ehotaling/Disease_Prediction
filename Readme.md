@@ -176,7 +176,7 @@ The dataset used was initially derived from publicly available Kaggle sources. P
 
 ---
 
-## Completed Milestones  
+## Completed Milestones Midpoint Presentation 
 - Data loaded, cleaned, and preprocessed  
 - EDA completed, including symptom frequency analysis and class distribution  
 - Chi-Squared and Random Forest feature selection conducted  
@@ -187,6 +187,12 @@ The dataset used was initially derived from publicly available Kaggle sources. P
 - Model training and evaluation results plotted (accuracy, precision, recall, F1)  
 - Model persistence implemented for Random Forest (`rf_model.pkl`)  
 - Midpoint presentation prepared with live demo
+
+---
+
+## Completed Milestones Final Presentation  
+- Nothing Completed Yet
+
 
 ---
 
@@ -297,6 +303,6 @@ This balance makes our dataset uniquely well-suited for evaluation and benchmark
 - Persisted models for Random Forest, Logistic Regression, and MLP  
 - Bar charts and comparative visuals for accuracy, precision, recall, and F1  
 - Presentation deck with full methodology, results, visualizations, and critical analysis  
-- Clear documentation for both code and findings, readable by instructors and LLMs
+- Clear documentation for both code and findings. 
 
 
