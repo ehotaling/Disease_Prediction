@@ -1,51 +1,71 @@
- Next Steps
+Todo List:
 
-    Refactor CLI to Support Model Choice
+1. Integrate T5 Model for Symptom Extraction (Top Priority)
+    - Replace OpenAI API with HuggingFace T5 (local, offline model)
 
-        Add selection menu
+2. Refactor CLI to Support Model Choice (RF, LR, MLP) (High Priority)
+    - Allow user to select which model to use at runtime
 
-        Load correct model (joblib or torch)
+3. Persist All Models (High Priority)
+    - Save Logistic Regression (lr_model.pkl) and MLP (mlp_model.pth)
 
-        Predict, return disease, and treatment
+4. Implement PyTorch Model Loader for CLI (High Priority)
+    - Enable loading/switching to PyTorch MLP during CLI predictions
 
-    Persist All Models
+5. Expand Feature Selection (Medium Priority)
+    - 	Add Mutual Info and RFE; create a merged ranking
 
-        Save logistic model (lr_model.pkl)
+6. Improve Model Training (Medium Priority)
+    - Add k-fold cross-validation; tune hyperparameters
 
-        Save MLP weights (mlp_model.pth)
+7. Enhance Evaluation (Low Priority)
+    - Add confusion matrices, ROC curves, top-3 accuracy, per-class analysis
 
-        Implement loader for PyTorch inference
+8. Finalize Presentation Visuals (High Priority)
+    - Add architecture diagrams, feature plots, model comparisons, CLI flow
 
-    Expand Feature Selection
+9. Polish Final Presentation (High Priority)
+    - Polish "Since Last Time" slide, walkthrough, and CLI demo
 
-        Add mutual info and RFE
+10. Create Limitations & Future Work Section
+    - Address 100% accuracy realism, dataset cleanliness, future dataset needs
 
-        Create merged ranking table
+I. Current Limitations:
 
-        Highlight overlap between methods
+    Dataset is clean, perfectly labeled, and symptom–disease relationships are non-overlapping.
 
-    Improve Model Training
+    Models achieve 100% accuracy because:
 
-        Use cross-validation
+        Each disease has a nearly unique symptom fingerprint.
 
-        Tune hyperparameters
+        No noise, incomplete data, or overlapping disease classes are present.
 
-        Compare tuned vs. untuned model performance
+    Thus, models are memorizing clean symptom patterns, not generalizing across messy, real-world ambiguity.
 
-    Enhance Evaluation
+A. Why This Isn't Overfitting:
 
-        Confusion matrices
+    We used a proper 80/20 train-test split.
 
-        ROC curves (macro-avg if needed)
+    Models never saw the test set during training.
 
-        Top-k predictions (top-3 accuracy)
+    100% accuracy on unseen test data shows that the data is just that separable, not that the models are overfitting.
 
-        Per-class analysis: where do each model struggle?
+    No evidence of overfitting like:
 
-    Final Presentation
+        High training accuracy but low test accuracy
 
-        Walk through motivation, methods, improvements
+        Performance drop on unseen data
 
-        Add visuals, performance comparisons, and architecture
+    Instead, both train and test sets have identical structure, so models can perfectly map symptoms to diseases.
 
-        Show CLI demo options and results
+B. Future Work:
+
+    Test pipeline on noisier, more realistic medical datasets (symptoms missing, misreported, overlapping diseases)
+
+    Add synthetic noise to simulate real-world uncertainty (random missing symptoms, typos)
+
+    Extend the pipeline to handle multi-label cases (patients with multiple conditions)
+
+    Build confidence/probability estimates (not just top-1 prediction)
+
+    Transition CLI to a web or mobile app for broader usability

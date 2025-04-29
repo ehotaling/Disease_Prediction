@@ -125,7 +125,7 @@ optimizer = optim.Adam(model.parameters(), lr=0.001)
 # Training loop for the MLP model
 num_epochs = 20
 for epoch in range(num_epochs):
-    model.train()  # Set model to training mode
+    model.train()  # Set the model to training mode
     epoch_loss = 0  # Initialize epoch loss
     for batch_X, batch_y in train_loader:
         optimizer.zero_grad()  # Clear previous gradients
@@ -137,7 +137,7 @@ for epoch in range(num_epochs):
     print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {epoch_loss / len(train_loader):.4f}")
 
 # Evaluate the MLP model on the test set
-model.eval()  # Set model to evaluation mode
+model.eval()  # Set the model to evaluation mode
 with torch.no_grad():
     outputs = model(X_test_tensor)
     _, predicted = torch.max(outputs, 1)  # Get predicted class labels
