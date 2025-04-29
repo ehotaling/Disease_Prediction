@@ -42,7 +42,6 @@ def drop_unnamed_columns(df):
 # -----------------------------
 custom_disease_aliases = {
     "(vertigo) paroymsal  positional vertigo": "Labyrinthitis",
-    "alcoholic hepatitis": "Alcohol Use Disorder",
     "allergy": "Food Allergy",
     "bronchial asthma": "Asthma",
     "cervical spondylosis": "Spondylosis",
