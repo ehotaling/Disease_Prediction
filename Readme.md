@@ -9,11 +9,11 @@
 ---
 
 ## Overview  
-This project builds a multi-class disease classifier using symptom data. The trained model can predict the most 
+This project builds a multi-class disease classifier using symptom data. The trained model can predict the most
 likely disease given a set of symptoms and return a recommended treatment.
-As of the latest update, the CLI now leverages GPT-4o mini for interpreting user-described symptoms using natural 
-language. This improves user interaction and expands flexibility in symptom input. This project is part of a data 
-mining learning initiative and includes Python scripts for data cleaning, feature selection, model training, 
+As of the latest update, the CLI leverages GPT-4o mini for interpreting user-described symptoms using natural
+language. This improves user interaction and expands flexibility in symptom input. This project is part of a data
+mining learning initiative and includes Python scripts for data cleaning, feature selection, model training,
 and prediction via a CLI interface.
 
 ---
@@ -199,8 +199,8 @@ The dataset used was initially derived from publicly available Kaggle sources. P
 ## To-Do List (Prioritized)
 
 1. **Integrate T5 Model for Symptom Extraction**  
-   Priority: Top  
-   - Replace GPT-4o with HuggingFace T5 for local, offline symptom interpretation
+   Priority: Top
+   - Status: Completed Evaluation. Decision made to defer T5 integration due to performance limitations compared to the GPT-4o baseline. See "Evaluation of Local T5 Model" section below for details.
 
 2. **Refactor CLI to Support Model Choice**  
    Priority: High  
@@ -247,6 +247,31 @@ The dataset used was initially derived from publicly available Kaggle sources. P
     - Explicitly address dataset limitations and discuss realistic future extensions
 
 ---
+
+## Evaluation of Local T5 Model for Symptom Interpretation
+
+### Goal: 
+- As part of exploring alternatives to external API calls, we investigated the integration of a local HuggingFace T5 model (specifically testing t5-small and t5-base) to replace the OpenAI GPT-4o mini for natural language symptom interpretation within the predict_cli.py tool. 
+- The goal was to enable offline functionality and remove the dependency on the OpenAI API for this component.
+
+### Approach: 
+- The T5 model was integrated into the CLI. User input was processed using various prompts designed to instruct the T5 model (e.g., "extract medical symptom keywords...") to identify relevant terms from the user's description. 
+- The model's output was then parsed, and the potential symptoms were matched against the project's canonical symptom list (feature_cols) using a combination of direct string matching and rapidfuzz fuzzy matching (WRatio score > 80) to handle minor variations.
+
+### Findings & Challenges:
+- Inconsistent Performance: Both t5-small and the larger t5-base models exhibited inconsistent performance in reliably extracting all relevant symptoms from user descriptions. Tests showed instances where obvious keywords like 'cough' or 'fever' were missed, even after correcting initial implementation bugs.
+- Sensitivity to Phrasing: The models proved highly sensitive to minor variations in user input phrasing (e.g., "fever" vs. "a fever"). This lack of robustness would lead to an unreliable user experience.
+- Extraction Failures: Even with t5-base and refined matching logic, the model failed to interpret relatively straightforward symptom combinations (e.g., unable to extract keywords from "dizzy, swollen legs, hungry" in final tests).
+- Significant Effort Required: Achieving performance comparable to the GPT-4o mini baseline would likely require substantial effort in prompt engineering, potentially exploring different local model architectures (beyond T5), or even fine-tuning a model specifically for this symptom extraction task.
+
+### Decision: 
+- Given the observed performance limitations and the significant effort required to potentially improve the local models to a reliable state, the decision was made to not proceed with the T5 integration at this time. 
+- For the current scope of the project, the existing implementation using the OpenAI API (GPT-4o mini) provides superior accuracy and robustness for interpreting natural language symptom input, ensuring a more functional and reliable user experience for the CLI tool.
+
+### Future Work Consideration: 
+- While deferred for now, exploring and potentially fine-tuning local NLP models for symptom interpretation remains a valid direction for future enhancements to this project, particularly if offline capability becomes a strict requirement.
+
+--- 
 
 ## Limitations and Future Work
 
