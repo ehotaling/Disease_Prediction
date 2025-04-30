@@ -154,14 +154,17 @@ Here is the recommended order for running the scripts:
 
 ---
 
-## Dataset Summary  
-- 4920 records  
-- 132 binary symptom features  
-- 40 unique disease classes  
-- Balanced dataset with minimal symptom overlap between classes  
-- Current data is clean and idealized, optimized for learning and classification, but not representative of real-world complexity
+## Dataset Summary
+The current dataset, sourced from Kaggle (https://www.kaggle.com/datasets/dhivyeshrk/diseases-and-symptoms-dataset?resource=download), is an artificially generated collection designed to reflect potential real-world disease occurrence probabilities and symptom co-occurrences.
 
-The dataset used was initially derived from publicly available Kaggle sources. Preprocessing steps included alias resolution for disease labels, column name normalization, and missing value management. A validation script was used to ensure consistent mapping between training and treatment datasets.
+Key characteristics:
+- **Initial Size:** ~247,000 records across 773 unique disease classes.
+- **Features:** 377 binary symptom features (1 indicating presence, 0 absence).
+- **Filtering:** Classes with fewer than 3 samples were removed prior to modeling to enable stratified train/test splitting, resulting in **748 unique disease classes** used for training and evaluation.
+- **Nature:** Contains varying combinations of symptoms for diseases and exhibits significant **class imbalance** (long tail effect), unlike the previous idealized dataset. This presents a more realistic modeling challenge.
+- **Baseline Performance:** Initial model training (LR, RF, MLP) yields baseline accuracies in the mid-80s, reflecting the increased complexity compared to the previous dataset where 100% accuracy was achieved due to its separable nature.
+
+This dataset replaces the previous smaller, balanced dataset. Consequently, prior preprocessing steps like alias resolution and validation against a separate treatment mapping file are no longer applicable.
 
 ---
 
@@ -173,13 +176,13 @@ The dataset used was initially derived from publicly available Kaggle sources. P
 
 ---
 
-## Key Objectives  
-1. Data preprocessing and normalization  
-2. Feature selection using Chi-Squared scores and model-based importances  
-3. Model training and evaluation (Random Forest, Logistic Regression, MLP)  
-4. Integration of natural language interpretation into CLI (initially using GPT-4o, later transitioning to T5)  
-5. Generating treatment recommendations dynamically via OpenAI API based on predictions
-6. Building a real-time prediction CLI tool  
+## Key Objectives
+1. Data preprocessing and normalization 
+2. Feature selection using Chi-Squared scores and model-based importances 
+3. Model training and evaluation (Random Forest, Logistic Regression, MLP) 
+4. Integration of natural language interpretation into CLI (using GPT-4o; T5 evaluation completed & deferred)
+5. Generating treatment recommendations dynamically via OpenAI API based on predictions 
+6. Building a real-time prediction CLI tool *(Updated features)*
 7. Presenting the project in a professional, academic format with visuals and metrics
 
 ---
@@ -198,9 +201,25 @@ The dataset used was initially derived from publicly available Kaggle sources. P
 
 ---
 
-## Completed Milestones Final Presentation  
-- Nothing Completed Yet
+## Completed Milestones Final Presentation
+Work completed since the midpoint presentation includes:
 
+- **Environment & Dependencies:** Resolved PyTorch/CUDA compatibility issues, enabling GPU acceleration for MLP training (`Using device: cuda`). Updated requirements into separate `requirements-gpu.txt` and `requirements-cpu.txt`.
+- **Code Stabilization:** Addressed deprecation warnings (sklearn, pandas) and PyTorch warnings in `model_training.py`.
+- **NLP Evaluation:** Evaluated local T5 model for symptom interpretation; decided to retain OpenAI API (GPT-4o mini) for better performance and reliability (See "Evaluation of Local T5 Model" section).
+- **Model Persistence & Selection:**
+    - Refactored `model_training.py` to save all three models (Logistic Regression, Random Forest, PyTorch MLP).
+    - Refactored `predict_cli.py` to allow user selection of the desired model (RF/LR/MLP) at runtime.
+    - Implemented PyTorch model loading (`state_dict`) and inference logic within `predict_cli.py`.
+- **New Dataset Integration:**
+    - Integrated a new, larger dataset (~247k rows, 773 initial diseases, 377 symptoms).
+    - Refactored `data_utils.py` for loading and basic cleaning of the new dataset format.
+    - Implemented filtering in `model_training.py` to remove classes with < 3 samples, resulting in 748 classes used for modeling and enabling stratified splitting.
+- **Baseline Model Training (New Dataset):**
+    - Successfully executed the refactored `model_training.py` pipeline on the full (filtered) new dataset.
+    - Trained LR, RF, and MLP models, achieving baseline accuracies in the mid-80s.
+    - Generated and saved model comparison metrics (CSV table, markdown table) and visualization plots (matplotlib table, bar charts) to a new `results/` directory.
+- **Planned Architecture Change:** Decided to switch from static treatment lookup to dynamic generation via OpenAI API (to be implemented in `predict_cli.py`). Relevant Readme sections updated to reflect this plan.
 
 ---
 
@@ -278,55 +297,54 @@ The dataset used was initially derived from publicly available Kaggle sources. P
 ### Future Work Consideration: 
 - While deferred for now, exploring and potentially fine-tuning local NLP models for symptom interpretation remains a valid direction for future enhancements to this project, particularly if offline capability becomes a strict requirement.
 
---- 
+---
 
 ## Limitations and Future Work
 
-### A. Current Limitations  
-- Dataset is clean, perfectly labeled, and lacks symptom overlap  
-- Each disease has a distinct combination of symptoms, allowing models to memorize associations without needing deep generalization  
-- The models therefore perform exceptionally well (100% accuracy), but would not retain this performance on noisier, real-world datasets
+### A. Current Limitations
+- **Artificial Dataset:** While large (~247k records, 773 initial diseases, 377 symptoms), the dataset used is artificially generated. It may lack the noise, nuances, missing values, and complex symptom correlations found in real-world clinical data. Potential biases from the generation process are unknown.
+- **Class Imbalance:** The dataset exhibits a significant class imbalance (long tail problem), even after filtering out the rarest classes (< 3 samples). This can affect model performance, particularly for less frequent diseases.
+- **Baseline Performance:** Current models (LR, RF, MLP) achieve baseline accuracies in the mid-80s. While reasonable for this complex task without tuning, there is significant room for improvement.
+- **Symptom Interpretation:** Relies on OpenAI API (GPT-4o mini), requiring an internet connection and API key. The quality of interpretation can impact prediction accuracy.
+- **Treatment Generation:** The planned dynamic treatment generation via OpenAI API needs careful implementation and validation due to the sensitive nature of medical advice, and will carry strong disclaimers.
 
-### B. Why This Is Not Overfitting  
-- Models are evaluated on a withheld 20% test set (never seen during training)  
-- No performance degradation between training and test phases  
-- There is no evidence of high training accuracy and low test accuracy  
-- The feature space is linearly and non-linearly separable, enabling strong generalization *within the scope of this dataset*
+### B. Monitoring Overfitting
+- Unlike the previous idealized dataset which yielded 100% test accuracy with no signs of overfitting, the current models train on a complex dataset where overfitting is a potential concern.
+- Current evaluation is based on a single train-test split. While the test performance (~83-87%) doesn't immediately suggest *severe* overfitting occurred within the tested 20 epochs for the MLP, rigorous monitoring was not implemented.
+- Future work (Task #6/#7) should incorporate validation sets and monitoring during training (e.g., plotting training vs. validation loss/accuracy) to detect overfitting and potentially implement techniques like early stopping or regularization.
 
-### C. Future Work  
-- Test pipeline against real-world or synthetically degraded datasets (with missing, noisy, or ambiguous symptom input)  
-- Introduce symptom uncertainty through randomized omissions or misspellings  
-- Expand to multi-label cases (multiple conditions per patient)  
-- Add probabilistic outputs and confidence scoring for each prediction  
-- Transition CLI to a web or mobile platform (e.g., Flask, Streamlit, or React)  
-- Replace the OpenAI API dependency with a local, open-source model (T5) for offline use and full control
+### C. Future Work
+- **Test on Real-World Data:** Evaluate the pipeline using real clinical datasets (if available) to assess true performance.
+- **Address Class Imbalance:** Implement techniques specifically designed for imbalanced datasets (e.g., resampling methods like SMOTE, class-weighted loss functions).
+- **Improve Model Training (Task #6):** Apply k-fold cross-validation for more robust evaluation. Tune hyperparameters for each model using techniques like grid search or randomized search. Explore more complex model architectures.
+- **Enhance Evaluation (Task #7):** Generate confusion matrices, ROC curves (potentially using one-vs-rest), and calculate top-k accuracy. Conduct detailed per-class analysis to understand performance on specific diseases, especially rare ones.
+- **Expand Feature Selection (Task #5):** Implement and compare additional feature selection methods (Mutual Information, RFE) and analyze their impact on performance and training time.
+- **Probabilistic Outputs:** Modify models/output to provide prediction probabilities or confidence scores.
+- **Multi-Label Classification:** Extend the system to handle cases where a patient might present with symptoms indicative of multiple simultaneous conditions.
+- **UI Development:** Transition the CLI to a more user-friendly web or mobile platform (e.g., using Flask, Streamlit, or React).
+- **Local NLP Exploration (Deferred):** Revisit the use of local open-source models for symptom interpretation if offline capability becomes critical and more powerful local models or fine-tuning techniques are explored (see "Evaluation of Local T5 Model" section).
 
-### D. Summary  
-The models demonstrate perfect accuracy due to the dataset’s ideal structure. This does not indicate overfitting, but rather confirms that the models are effectively capturing strong class-separating patterns in the symptom features. The next phase of development will focus on generalizing this architecture to handle uncertainty, noise, and real-world variability.
+### D. Summary 
+- The models demonstrate reasonable baseline performance (accuracies ~83-87%, macro F1 ~80-84%) on a large, complex, and imbalanced dataset featuring 748 disease classes and 377 symptoms.
+- This indicates the models are learning meaningful patterns beyond simple memorization seen in the previous idealized dataset.
+- Current development focuses on integrating dynamic treatment generation and establishing robust training/evaluation pipelines, while future work will target performance improvement through feature engineering, model tuning, and advanced evaluation techniques.
 
-### E. Note on Feature Reduction and Model Reliability
-While we performed feature selection using Chi-Squared statistics and Random Forest importance to identify the most informative symptoms globally, we chose **not to reduce the input features** used in model training or prediction. This decision was made intentionally to preserve the full diversity of symptom inputs associated with each disease. 
+### E. Note on Feature Reduction and Model Reliability 
+- With 377 symptom features, feature selection/reduction (Task #5) becomes a more relevant consideration than with the previous smaller dataset, potentially offering benefits in training time and model simplicity.
+- However, the core principle remains: care must be taken to ensure that reducing features based on global importance metrics does not inadvertently remove symptoms critical for identifying specific, potentially rare, diseases.
+- Any feature reduction strategy should be evaluated rigorously, including its impact on per-class performance metrics, before being fully adopted. For the initial baseline, full feature coverage was maintained.
 
-In a multi-class classification problem like disease prediction, some features may appear **unimportant overall**, but may be **critical for correctly classifying specific diseases**, especially those with rare or unique symptoms. Reducing features based solely on global rankings risks removing these **class-specific indicators**, which could significantly degrade the accuracy for certain conditions — even if overall accuracy remains high. Additionally, feature redundancy helps absorb noise and variability in user symptom descriptions, which is particularly important in real-world deployment scenarios.
+### F. Dimensionality
+- The current dataset utilizes **377 binary symptom features**, creating a higher-dimensional input space compared to the previous dataset (132 features).
+- While higher dimensionality can sometimes lead to the "curse of dimensionality" (sparsity, degraded distance metrics), the baseline models (LR, RF, MLP) achieved reasonable performance (~83-87% accuracy).
+- This suggests that while the dimensionality is significant, it is not currently preventing the models from learning effectively on this dataset. Techniques like feature reduction or dimensionality reduction (e.g., PCA, though less common for binary features) might become more relevant if performance plateaus or during hyperparameter tuning.
 
-Therefore, for this phase of the project, we prioritized **maintaining full feature coverage** to ensure maximum diagnostic reliability across all classes. Future iterations may explore controlled feature reduction, but only with rigorous class-wise performance evaluation and careful testing on noisy or real-world datasets.
-
-### F. Dimensionality and the Curse of Dimensionality
-Our dataset has 132 binary symptom features, which constitutes a high-dimensional input space. However, despite the dimensionality, we do **not** suffer from the curse of dimensionality. The dataset is clean, balanced, and features are highly informative — symptoms uniquely map to diseases. Binary features, coupled with clear class boundaries and no noise, create a well-separated decision space.
-
-The models are able to learn strong decision boundaries without the issues of sparsity or degraded distance metrics. We observe no signs of overfitting or learning instability. This means we benefit from high-dimensional input **without the typical drawbacks**, as long as the data remains clean and structured.
-
-Should we move to a more realistic dataset in the future, dimensionality reduction and feature pruning might become more relevant tools to manage noise and improve generalization.
-
-### G. Absence of the Long Tail Problem
-Another typical challenge in multi-class classification is the **long tail problem**, where a few classes dominate the dataset while many others are severely underrepresented. This creates biased learning behavior in most models.
-
-However, this issue does not affect our project because:
-- The dataset is **balanced** — every class (disease) has approximately the same number of samples (~120)
-- There are no rare diseases with too few examples to learn from
-- As a result, the models are not biased toward any "head" class and perform equally well across all 40 classes
-
-This balance makes our dataset uniquely well-suited for evaluation and benchmarking, but it also reinforces the need for future testing on **real-world datasets**, which often suffer from class imbalance and long-tail effects.
+### G. Presence of the Long Tail Problem 
+- Unlike the previous balanced dataset, the current dataset **exhibits a significant long tail problem**, meaning some disease classes have many samples while a large number of classes have very few.
+- This was confirmed during data preparation, where **25 classes were removed entirely** because they had fewer than 3 samples, making stratified splitting impossible.
+- The remaining **748 classes are still likely imbalanced** to varying degrees, reflecting the dataset description regarding real-world occurrence probability.
+- **Implications:** Class imbalance can bias models towards predicting more frequent classes and can lead to poor performance (especially low recall) on rare classes, even if overall accuracy appears high. Macro-averaged metrics (like those used in the comparison table) are sensitive to this imbalance.
+- **Mitigation:** The filtering step addresses the most extreme cases. Future work should explicitly consider techniques to handle class imbalance during training or evaluation (see Future Work section).
 
 ---
 
