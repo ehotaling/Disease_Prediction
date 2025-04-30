@@ -98,7 +98,7 @@ Install required Python packages depending on your system architecture and avail
 * rapidfuzz
 * openai
 * python-dotenv
-* tabulate *(Added dependency for markdown table printing)*
+* tabulate 
 
 
 ---
