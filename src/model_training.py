@@ -23,6 +23,16 @@ import matplotlib.pyplot as plt
 #          This script also saves the pre-trained Random Forest model to disk.
 # ============================================================
 
+
+# -----------------------------
+# Create model directory
+# -----------------------------
+
+model_dir = "../models"
+if not os.path.exists(model_dir):
+    os.makedirs(model_dir)
+
+
 # -----------------------------
 # Load and prepare the dataset
 # -----------------------------
@@ -54,10 +64,20 @@ lr_model = LogisticRegression(max_iter=1000, multi_class='multinomial', solver='
 lr_model.fit(X_train, y_train_encoded)  # Train the model
 y_pred_lr = lr_model.predict(X_test)  # Predict on the test set
 acc_lr = accuracy_score(y_test_encoded, y_pred_lr)
+
+
+
 print("Logistic Regression Accuracy: {:.2f}%".format(acc_lr * 100))
 
 # Print detailed classification metrics
 print("Classification Report:\n", classification_report(y_test_encoded, y_pred_lr))
+
+# -----------------------------
+# Save the Logistic Regression model to disk
+# -----------------------------
+lr_model_path = os.path.join(model_dir, "lr_model.pkl") # Assuming model_dir is defined as "../models"
+joblib.dump(lr_model, lr_model_path)
+print(f"\nLogistic Regression model saved to {lr_model_path}")
 
 # -----------------------------
 # Model 2: Random Forest Classifier (scikit-learn)
@@ -75,9 +95,6 @@ print("Classification Report:\n", classification_report(y_test_encoded, y_pred_r
 # -----------------------------
 # Save the Random Forest model to disk
 # -----------------------------
-model_dir = "../models"
-if not os.path.exists(model_dir):
-    os.makedirs(model_dir)
 
 model_path = os.path.join(model_dir, "rf_model.pkl")
 joblib.dump(rf_model, model_path)
@@ -117,7 +134,6 @@ class MLPClassifier(nn.Module):
         out = self.fc2(out)
         return out
 
-
 input_dim = X_train.shape[1]
 num_classes = len(uniques)
 mlp_model = MLPClassifier(input_dim, num_classes)
@@ -151,6 +167,12 @@ with torch.no_grad():
     y_test_np = y_test_tensor.cpu().numpy()
     print("Classification Report:\n", classification_report(y_test_np, predicted_np))
 
+# -----------------------------
+# Save the PyTorch MLP model to disk
+# -----------------------------
+mlp_model_path = os.path.join(model_dir, "mlp_model.pth")
+torch.save(mlp_model.state_dict(), mlp_model_path)
+print(f"PyTorch MLP model state_dict saved to {mlp_model_path}")
 # -------------------------------------
 # Compute additional performance metrics for all models
 # -------------------------------------

@@ -8,6 +8,8 @@ from prediction_mapping import get_treatment
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
+import torch
+import torch.nn as nn
 
 # ============================================================
 # File: predict_cli.py
@@ -20,18 +22,11 @@ from dotenv import load_dotenv
 # -----------------------------
 # Configuration and Paths
 # -----------------------------
-model_path = "../models/rf_model.pkl"
+rf_model_path = "../models/rf_model.pkl"
+lr_model_path = "../models/lr_model.pkl"
+mlp_model_path = "../models/mlp_model.pth"
 training_data_path = "../data/training_data.csv"
 
-# -----------------------------
-# Load the pre-trained model
-# -----------------------------
-try:
-    model = joblib.load(model_path)
-    print("Pre-trained model loaded successfully.")
-except Exception as e:
-    print(f"Error loading model. Please ensure the model file exists at: {model_path}")
-    raise e
 
 # -----------------------------
 # Load T5 model for symptom interpretation
@@ -146,6 +141,26 @@ def symptoms_to_vector(matched_symptoms, feature_list):
             input_vector[i] = 1
     return input_vector
 
+
+# -----------------------------
+# PyTorch MLP Model Definition
+# -----------------------------
+# This class defines the structure of the Multi-Layer Perceptron (MLP)
+# used for classification. It must be identical to the MLPClassifier
+# class defined in model_training.py to allow loading the saved model state_dict.
+class MLPClassifier(nn.Module):
+    def __init__(self, input_dim, num_classes):
+        super(MLPClassifier, self).__init__()
+        self.fc1 = nn.Linear(input_dim, 64)  # Hidden layer with 64 neurons
+        self.relu = nn.ReLU()  # Activation function
+        self.fc2 = nn.Linear(64, num_classes)  # Output layer for class logits
+
+    def forward(self, x):
+        out = self.fc1(x)
+        out = self.relu(out)
+        out = self.fc2(out)
+        return out
+
 # -----------------------------
 # Main prediction interface
 # -----------------------------
@@ -161,7 +176,66 @@ def main():
     recommendation. Users can perform multiple predictions within the same session.
 
     """
-    print("\nWelcome to the Disease Prediction CLI!")
+    print("\nWelcome to the Disease Prediction CLI!\n")
+
+    print("Available models: RF (Random Forest), LR (Logistic Regression), MLP (Neural Network)")
+    while True:
+        choice = input("Enter the model you want to use (RF/LR/MLP): ").upper()
+        if choice in ['RF', 'LR', 'MLP']:
+            break
+        else:
+            print("Invalid choice. Please enter RF, LR, or MLP.")
+
+    selected_model = None
+    model_name = ""
+
+    try:
+        if choice == 'RF':
+            selected_model = joblib.load(rf_model_path)
+            model_name = "Random Forest"
+        elif choice == 'LR':
+            selected_model = joblib.load(lr_model_path)
+            model_name = "Logistic Regression"
+        elif choice == 'MLP':
+            model_name = "PyTorch MLP"
+            print(f"Loading {model_name}...")
+            try:
+                # Get model parameters (already calculated earlier in the script)
+                input_dim = len(feature_cols)
+                num_classes = len(uniques)
+
+                # Instantiate the model structure
+                mlp_model_instance = MLPClassifier(input_dim, num_classes)
+
+                # Load the saved state dictionary
+                mlp_model_instance.load_state_dict(torch.load(mlp_model_path))
+
+                # Set the model to evaluation mode
+                mlp_model_instance.eval()
+
+                # Assign the loaded model to the common variable
+                selected_model = mlp_model_instance
+                print(f"{model_name} model structure defined and weights loaded.")  # Confirmation message
+
+            except FileNotFoundError:
+                print(f"Error: MLP model file not found at {mlp_model_path}")
+                exit()
+            except Exception as e:
+                print(f"Error loading PyTorch MLP model: {e}")
+                exit()
+
+        if selected_model:
+            print(f"{model_name} model loaded successfully.")
+
+    except FileNotFoundError:
+        print(f"Error: Model file for {choice} not found. Please ensure models are trained and saved.")
+        exit()  # Exit if the chosen model file doesn't exist
+    except NotImplementedError as e:
+        print(f"Error: {e}")
+        exit()
+    except Exception as e:
+        print(f"An unexpected error occurred loading the model: {e}")
+        exit()
 
     while True:
         print("\nPlease describe your symptoms in detail.")
@@ -183,20 +257,58 @@ def main():
             input_df = pd.DataFrame(input_vector, columns=feature_cols)
 
             # Predict the disease using the pre-trained model
-            predicted_label = model.predict(input_df)[0]
-            predicted_disease = uniques[predicted_label]
+            predicted_disease = None  # Initialize
+            treatment_recommendation = "N/A"  # Initialize
 
-            # Retrieve recommended treatment
-            treatment_recommendation = get_treatment(predicted_disease)
+            # Determine predicted_label based on model choice (RF/LR/MLP)
+            if choice in ['RF', 'LR']:
+                if selected_model:  # Ensure model is loaded
+                    predicted_label = selected_model.predict(input_df)[0]
+                else:
+                    print(f"{model_name} model not loaded, cannot predict.")
+            elif choice == 'MLP':
+                if selected_model:  # Ensure the model is loaded
+                    try:
+                        # Convert input vector to PyTorch tensor
+                        # Make sure input_vector is correctly shaped (e.g., [1, num_features])
+                        input_tensor = torch.tensor(input_vector.astype(np.float32)).float()
+
+                        # Perform prediction within no_grad context
+                        with torch.no_grad():
+                            outputs = selected_model(input_tensor)
+                            _, predicted = torch.max(outputs, 1)
+                            predicted_label = predicted.item()  # Get the integer label
+
+                    except Exception as e:
+                        print(f"Error during MLP prediction: {e}")
+                        predicted_label = None  # Indicate prediction failure
+
+                else:
+                    print("MLP model not loaded, cannot predict.")
+                    predicted_label = None
+
+            # Assign disease and treatment only if prediction was successful
+            if 'predicted_label' in locals() and predicted_label is not None:
+                try:
+                    predicted_disease = uniques[predicted_label]
+                    treatment_recommendation = get_treatment(predicted_disease)
+                except IndexError:
+                    print(f"Error: Predicted label {predicted_label} is out of bounds for known diseases.")
+                    predicted_disease = "Error in prediction"
 
             # Display prediction and treatment
             print("\nPrediction Results:")
             print("-------------------")
-            print(f"Predicted Disease: {predicted_disease}")
-            print(f"Recommended Treatment: {treatment_recommendation}")
+            if predicted_disease and predicted_disease != "Error in prediction":
+                print(f"Predicted Disease: {predicted_disease}")
+                print(f"Recommended Treatment: {treatment_recommendation}")
+            elif predicted_disease == "Error in prediction":
+                print("Could not determine disease due to prediction error.")
+            else:
+                print("Prediction could not be performed for the selected model.")
 
-        # Ask if the user wants to enter another set of symptoms
-        again = input("\nWould you like to enter another set of symptoms? (yes/no): ").strip().lower()
+            # Ask if the user wants to enter another set of symptoms
+            again = input("\nWould you like to enter another set of symptoms? (yes/no): ").strip().lower()
         if again not in ["yes", "y"]:
             print("Thank you for using the Disease Prediction CLI. Stay healthy!")
             break
