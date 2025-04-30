@@ -1,0 +1,14 @@
+pandas
+numpy
+scikit-learn
+matplotlib
+joblib
+rapidfuzz
+openai
+python-dotenv
+tabulate
+torch==2.2.2+cpu
+torchvision==0.17.2+cpu
+torchaudio==2.2.2+cpu
+--index-url https://download.pytorch.org/whl/cpu
+tabulate

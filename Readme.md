@@ -42,25 +42,36 @@ Disease_Prediction/
 
 ---
 
-##  Requirements
+## Requirements
 
 Install required Python packages:
 
-```bash
-pip install -r requirements.txt
-```
+1.  **GPU Users (with compatible NVIDIA GPU and CUDA):**
+    Ensure you have a compatible NVIDIA driver and CUDA toolkit installed. Then install the specific PyTorch build:
+    ```bash
+    pip install -r requirements-gpu.txt
+    ```
+    *(Note: `requirements-gpu.txt` may specify exact versions and index URLs for CUDA compatibility, like the PyTorch nightly build used during development).*
 
-Minimum requirements:
+2.  **CPU Users (no dedicated compatible GPU):**
+    Install the CPU-only version of PyTorch and other packages:
+    ```bash
+    pip install -r requirements-cpu.txt
+    ```
 
-- pandas
-- numpy
-- scikit-learn
-- matplotlib
-- joblib
-- torch
-- rapidfuzz
-- openai
-- python-dotenv
+**Minimum requirements (common to both):**
+
+* pandas
+* numpy
+* scikit-learn
+* matplotlib
+* joblib
+* torch (CPU or GPU version)
+* rapidfuzz
+* openai
+* python-dotenv
+* tabulate *(Added dependency for markdown table printing)*
+
 
 ---
 

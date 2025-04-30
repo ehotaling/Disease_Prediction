@@ -1,5 +1,6 @@
 /.env
-/models/
 /.venv/
 /.idea
-/data/*.csv
+/data/
+/models/
+/results/
