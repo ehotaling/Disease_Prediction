@@ -33,6 +33,14 @@ Disease_Prediction/
 │   ├── rf_model.pkl
 │   ├── lr_model.pkl
 │   └── mlp_model.pth
+├── results/                # Stores generated plots and comparison tables
+│   ├── model_comparison.csv
+│   ├── model_comparison_table.png
+│   ├── accuracy_comparison.png
+│   ├── f1_score_comparison.png
+│   ├── recall_comparison.png
+│   └── precision_comparison.png
+│   
 ├── src/                     # Python scripts (all core logic lives here)
 │   ├── data_utils.py
 │   ├── clean_data.py
@@ -79,7 +87,7 @@ Install required Python packages depending on your system architecture and avail
    - Installs native torch==2.2.2 and friends compatible with macOS ARM wheels.
 
 
-**Minimum requirements (common to both):**
+**Minimum requirements (common to all variants):**
 
 * pandas
 * numpy
@@ -256,7 +264,7 @@ This dataset replaces the previous smaller, balanced dataset. Consequently, prio
 - EDA completed, including symptom frequency analysis and class distribution  
 - Chi-Squared and Random Forest feature selection conducted  
 - Models trained and evaluated: Random Forest, Logistic Regression, and PyTorch-based MLP  
-- All models achieved 100% test accuracy due to dataset separability  
+- All models achieved 100% test accuracy due to dataset separability. **Note** This originally referred to the prior, highly separable dataset (now deprecated). Current models trained on the new dataset exhibit **realistic baseline accuracy (83–87%)**, reflecting its increased complexity and class imbalance.
 - CLI built with GPT-4o mini for natural language symptom interpretation  
 - Predictions mapped to recommended treatments  
 - Model training and evaluation results plotted (accuracy, precision, recall, F1)  
@@ -268,7 +276,12 @@ This dataset replaces the previous smaller, balanced dataset. Consequently, prio
 ## Completed Milestones Final Presentation
 Work completed since the midpoint presentation includes:
 
-- **Environment & Dependencies:** Resolved PyTorch/CUDA compatibility issues, enabling GPU acceleration for MLP training (`Using device: cuda`). Updated requirements into separate `requirements-gpu.txt` and `requirements-cpu.txt`.
+- **Environment & Dependencies:** Resolved PyTorch/CUDA compatibility issues, enabling GPU acceleration for MLP training (`Using device: cuda`). Updated requirements into three separate files:  
+  - `requirements-gpu.txt` for CUDA-enabled systems  
+  - `requirements-cpu.txt` for general CPU-only environments  
+  - `requirements-mac-arm.txt` for native Apple Silicon (M1/M2/M3) support  
+  All files now also pin `numpy<2.0.0` to prevent import-time crashes due to ABI incompatibility.
+
 - **Code Stabilization:** Addressed deprecation warnings (sklearn, pandas) and PyTorch warnings in `model_training.py`.
 - **NLP Evaluation:** Evaluated local T5 model for symptom interpretation; decided to retain OpenAI API (GPT-4o mini) for better performance and reliability (See "Evaluation of Local T5 Model" section).
 - **Model Persistence & Selection:**
