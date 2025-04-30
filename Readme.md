@@ -22,42 +22,57 @@ and prediction via a CLI interface.
 
 ```
 Disease_Prediction/
-├── data/                  # Contains raw .csv datasets
-│   └── training_data.csv  # Contains training data
-├── models/                # Stores pre-trained models
+├── data/                    # Contains raw .csv datasets
+│   └── training_data.csv    # Contains training data
+├── models/                  # Stores pre-trained models
 │   ├── rf_model.pkl
 │   ├── lr_model.pkl
 │   └── mlp_model.pth
-├── src/                   # Python scripts (all core logic lives here)
+├── src/                     # Python scripts (all core logic lives here)
 │   ├── data_utils.py
 │   ├── clean_data.py
 │   ├── feature_selection.py
 │   ├── model_training.py
 │   └── predict_cli.py       # Core prediction and API interaction logic
-├── .env                   # Environment variables for API keys
-├── .env.example           # Template for required environment variables
+├── .env                     # Environment variables for API keys
+├── .env.example             # Template for required environment variables
 ├── README.md
-└── requirements.txt
+├── requirements-cpu.txt     # For CPU-only environments
+├── requirements-gpu.txt     # For CUDA-enabled GPU systems
+└── requirements-mac-arm.txt # Optimized for macOS ARM (M1/M2/M3)
 ```
 
 ---
 
 ## Requirements
 
-Install required Python packages:
+Install required Python packages depending on your system architecture and available hardware:
 
-1.  **GPU Users (with compatible NVIDIA GPU and CUDA):**
-    Ensure you have a compatible NVIDIA driver and CUDA toolkit installed. Then install the specific PyTorch build:
-    ```bash
-    pip install -r requirements-gpu.txt
-    ```
-    *(Note: `requirements-gpu.txt` may specify exact versions and index URLs for CUDA compatibility, like the PyTorch nightly build used during development).*
-
-2.  **CPU Users (no dedicated compatible GPU):**
-    Install the CPU-only version of PyTorch and other packages:
+1.  ** CPU Users (no compatible GPU):**
+    Use this if you’re on a typical desktop or server without a CUDA-capable NVIDIA GPU.
     ```bash
     pip install -r requirements-cpu.txt
     ```
+   - Uses torch==2.2.2+cpu and related CPU-only builds via PyTorch’s index. 
+
+2.  **GPU Users (CUDA 12.8+, NVIDIA GPU):**
+    Use this if you’re training or running models on a CUDA-capable GPU with up-to-date drivers.
+    ```bash
+    pip install -r requirements-gpu.txt
+    ```
+    - Uses nightly builds like torch==2.8.0.dev...+cu128.
+    - Pulls packages from https://download.pytorch.org/whl/nightly/cu128.
+    - Ensure your GPU and driver support CUDA 12.8 and that your system is configured properly for PyTorch GPU usage.
+
+3. **macOS ARM (Apple M1/M2/M3):**
+    For Macs with Apple Silicon. These packages are built natively for ARM64.
+    
+    ```bash
+    pip install -r requirements-mac-arm.txt
+    ```
+   - Uses standard PyPI index (no extra index required).
+   - Installs native torch==2.2.2 and friends compatible with macOS ARM wheels.
+
 
 **Minimum requirements (common to both):**
 
