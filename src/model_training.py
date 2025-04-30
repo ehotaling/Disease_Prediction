@@ -17,7 +17,20 @@ import matplotlib.pyplot as plt
 import torch # Ensure torch is imported early if used globally
 import torch.nn as nn
 import torch.optim as optim
+import copy
 from torch.utils.data import DataLoader, TensorDataset
+
+# Set seeds for reproducibility
+import random
+seed = 42
+torch.manual_seed(seed)
+torch.cuda.manual_seed_all(seed)
+np.random.seed(seed)
+random.seed(seed)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+torch.use_deterministic_algorithms(True)
+
 
 # ============================================================
 # File: model_training.py
@@ -87,14 +100,29 @@ y = df_filtered[target_column]
 print("\nFactorizing filtered target labels...")
 y_encoded, uniques = pd.factorize(y)
 print(f"Number of unique classes after filtering: {len(uniques)}")
+# Save the label mapping for future prediction use
+label_map_path = os.path.join(model_dir, "label_mapping.npy")
+np.save(label_map_path, uniques)
+print(f"Label mapping saved to {label_map_path}")
+
 
 # Split the filtered data
-print("Splitting filtered data into train/test sets (80/20)...")
-X_train, X_test, y_train_encoded, y_test_encoded = train_test_split(
-    X, y_encoded, test_size=0.2, random_state=42, stratify=y_encoded # Stratify works now
+print("Splitting data into train/val/test sets...")
+
+# First, split off the test set (20%)
+X_temp, X_test, y_temp, y_test_encoded = train_test_split(
+    X, y_encoded, test_size=0.2, random_state=42, stratify=y_encoded
 )
-print(f"Training set size: {X_train.shape[0]} samples")
-print(f"Test set size: {X_test.shape[0]} samples")
+
+# Then split the remaining 80% into train and validation sets (64% train, 16% val)
+X_train, X_val, y_train_encoded, y_val_encoded = train_test_split(
+    X_temp, y_temp, test_size=0.2, random_state=42, stratify=y_temp
+)
+
+print(f"Training set size:     {X_train.shape[0]} samples")
+print(f"Validation set size:   {X_val.shape[0]} samples")
+print(f"Test set size:         {X_test.shape[0]} samples")
+
 
 # -----------------------------
 # Model 1: Logistic Regression (scikit-learn)
@@ -145,6 +173,12 @@ X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
 X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32)
 y_train_tensor = torch.tensor(y_train_encoded, dtype=torch.long)
 y_test_tensor = torch.tensor(y_test_encoded, dtype=torch.long)
+# Also convert validation data to tensors
+X_val_tensor = torch.tensor(X_val.values, dtype=torch.float32)
+y_val_tensor = torch.tensor(y_val_encoded, dtype=torch.long)
+val_dataset = TensorDataset(X_val_tensor, y_val_tensor)
+val_loader = DataLoader(val_dataset, batch_size=1024)  # Big batch for eval
+
 print("Tensor conversion complete.")
 
 # Create a DataLoader for batch processing
@@ -178,27 +212,61 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(mlp_model.parameters(), lr=0.001)
 
 num_epochs = 15 # Can change this
+best_val_acc = 0.0
+epochs_without_improvement = 0
+patience = 3  # Stop training if no improvement after 3 epochs
 print(f"Starting MLP training for {num_epochs} epochs...")
 for epoch in range(num_epochs):
     mlp_model.train()
     epoch_loss = 0
     processed_samples = 0
     for i, (batch_X, batch_y) in enumerate(train_loader):
-        batch_X, batch_y = batch_X.to(device), batch_y.to(device) # Move batch to device
+        batch_X, batch_y = batch_X.to(device), batch_y.to(device)
         optimizer.zero_grad()
         outputs = mlp_model(batch_X)
         loss = criterion(outputs, batch_y)
         loss.backward()
         optimizer.step()
-        loss_value = loss.detach().item()
-        epoch_loss += loss_value
+        epoch_loss += loss.item()
         processed_samples += len(batch_X)
-        # Print progress within epoch
-        # if (i + 1) % 100 == 0:
-            # print(f'  Epoch {epoch + 1}/{num_epochs}, Batch {i + 1}/{len(train_loader)}, Loss: {loss.item():.4f}')
 
     avg_epoch_loss = epoch_loss / len(train_loader)
     print(f"Epoch {epoch + 1}/{num_epochs} completed, Average Loss: {avg_epoch_loss:.4f}")
+
+    # --- Validation Accuracy ---
+    mlp_model.eval()
+    val_preds = []
+    val_true = []
+    with torch.no_grad():
+        for val_X_batch, val_y_batch in val_loader:
+            val_X_batch = val_X_batch.to(device)
+            val_y_batch = val_y_batch.to(device)
+            val_outputs = mlp_model(val_X_batch)
+            _, val_predicted = torch.max(val_outputs, 1)
+            val_preds.extend(val_predicted.cpu().numpy())
+            val_true.extend(val_y_batch.cpu().numpy())
+
+    val_acc = accuracy_score(val_true, val_preds)
+    print(f"  Validation Accuracy: {val_acc:.2%}")
+
+    # --- Early Stopping Check ---
+    if val_acc > best_val_acc:
+        best_val_acc = val_acc
+        epochs_without_improvement = 0
+        # Save best model during training
+        best_model_state = copy.deepcopy(mlp_model.state_dict())
+        print("  New best model found. Saving checkpoint.")
+    else:
+        epochs_without_improvement += 1
+        print(f"  No improvement. Patience: {epochs_without_improvement}/{patience}")
+        if epochs_without_improvement >= patience:
+            print("  Early stopping triggered.")
+            break
+
+# Load best model before final evaluation on test set
+mlp_model.load_state_dict(best_model_state)
+print("Best model loaded for final evaluation.")
+
 
 print("MLP training complete.")
 print("Evaluating MLP...")
@@ -228,7 +296,12 @@ print("PyTorch MLP Accuracy: {:.2f}%".format(acc_torch * 100))
 # Save the PyTorch MLP model state dictionary
 print("Saving PyTorch MLP model...")
 mlp_model_path = os.path.join(model_dir, "mlp_model.pth")
-torch.save(mlp_model.state_dict(), mlp_model_path)
+torch.save({
+    'model_state_dict': mlp_model.state_dict(),
+    'input_dim': input_dim,
+    'num_classes': num_classes
+}, mlp_model_path)
+
 print(f"PyTorch MLP model state_dict saved to {mlp_model_path}")
 
 # -------------------------------------
