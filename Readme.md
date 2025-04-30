@@ -187,7 +187,8 @@ After downloading:
 
 1. Unzip the file.
 2. Rename the file to `training_data.csv` if needed.
-3. Move the file to the project’s `data/` directory:
+3. Create a `data/` directory in the project root if it doesn't already exist.
+4. Move the file to the project’s `data/` directory:
     `Disease_Prediction/data/training_data.csv`
 
 > This file is required for all stages of the pipeline, including data cleaning, training, and prediction. It is not included in the repository due to licensing and file size.
