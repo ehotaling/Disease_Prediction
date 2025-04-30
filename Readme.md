@@ -10,7 +10,7 @@
 
 ## Overview  
 This project builds a multi-class disease classifier using symptom data. The trained model can predict the most
-likely disease given a set of symptoms and return a recommended treatment.
+likely disease given a set of symptoms and return a recommended treatment, dynamically generated via the OpenAI API based on the predicted disease.
 As of the latest update, the CLI leverages GPT-4o mini for interpreting user-described symptoms using natural
 language. This improves user interaction and expands flexibility in symptom input. This project is part of a data
 mining learning initiative and includes Python scripts for data cleaning, feature selection, model training,
@@ -23,18 +23,17 @@ and prediction via a CLI interface.
 ```
 Disease_Prediction/
 ├── data/                  # Contains raw .csv datasets
-│   ├── training_data.csv
-│   └── Diseases_Symptoms.csv
-├── models/                # Stores pre-trained model (Random Forest)
-│   └── rf_model.pkl
+│   └── training_data.csv  # (Will be replaced with new dataset)
+├── models/                # Stores pre-trained models
+│   ├── rf_model.pkl
+│   ├── lr_model.pkl
+│   └── mlp_model.pth
 ├── src/                   # Python scripts (all core logic lives here)
 │   ├── data_utils.py
 │   ├── clean_data.py
 │   ├── feature_selection.py
 │   ├── model_training.py
-│   ├── prediction_mapping.py
-│   ├── predict_cli.py
-│   └── validate_mapping.py      # Validates training-treatments alignment
+│   └── predict_cli.py       # Core prediction and API interaction logic
 ├── .env                   # Environment variables for API keys
 ├── .env.example           # Template for required environment variables
 ├── README.md
@@ -99,38 +98,31 @@ Here is the recommended order for running the scripts:
    - Chi-Squared Scores
    - Random Forest Feature Importances
 
-3. **validate_mapping.py** *(optional but recommended)*
 
-   Validates that all disease names in the training data match the canonical names in the treatment dataset.
-
-   ```bash
-   python src/validate_mapping.py
-   ```
-
-   Use this to confirm your `prognosis` labels are properly aligned with the treatment data and alias mapping logic.
-
-4. **model_training.py**
+3. **model_training.py**
 
    Trains 3 classifiers:
 
    - Logistic Regression
-   - Random Forest  (Saved as rf_model.pkl)
+   - Random Forest
    - MLP using PyTorch
 
-   Automatically saves the trained Random Forest model in `models/rf_model.pkl`.
+   Automatically saves the trained models (`rf_model.pkl`, `lr_model.pkl`, `mlp_model.pth`) in the `models/` directory.
 
    ```bash
    python src/model_training.py
    ```
 
-5. **predict_cli.py**
+4. **predict_cli.py**
 
    Interactive command-line interface for real-time symptom prediction:
 
-   - Accepts user input (natural language symptoms)
-   - Interprets symptoms using GPT-4o mini via OpenAI API
-   - Predicts disease using the pre-trained Random Forest model
-   - Returns the recommended treatment using fuzzy or semantic matching
+   - Accepts user input (natural language symptoms).
+   - Interprets symptoms using GPT-4o mini via OpenAI API.
+   - Allows user to select prediction model (RF, LR, MLP).
+   - Predicts disease using the selected pre-trained model.
+   - **Generates a concise treatment recommendation for the predicted disease using the OpenAI API.**
+   - **Important Disclaimer:** Treatment recommendations are AI-generated and *not* a substitute for professional medical advice.
 
    ```bash
    python src/predict_cli.py
@@ -138,10 +130,15 @@ Here is the recommended order for running the scripts:
 
    **Example:**
    ```
+   Enter model you want to use (RF/LR/MLP): RF
+   Random Forest model loaded successfully.
    Enter your symptoms: I'm nauseous and have been throwing up with chills
    Interpreted symptoms: nausea, vomiting, chills
+
+   Prediction Results:
+   -------------------
    Predicted Disease: Gastroenteritis
-   Recommended Treatment: Rehydration, rest, and electrolyte replacement
+   Recommended Treatment: [AI-generated treatment suggestion, e.g., Focus on rehydration with water or electrolyte solutions. Rest is important. Over-the-counter medications may help with nausea, but consult a doctor if symptoms persist or worsen.]
    ```
 
 ---
@@ -170,7 +167,7 @@ The dataset used was initially derived from publicly available Kaggle sources. P
 2. Feature selection using Chi-Squared scores and model-based importances  
 3. Model training and evaluation (Random Forest, Logistic Regression, MLP)  
 4. Integration of natural language interpretation into CLI (initially using GPT-4o, later transitioning to T5)  
-5. Mapping predictions to treatment recommendations  
+5. Generating treatment recommendations dynamically via OpenAI API based on predictions
 6. Building a real-time prediction CLI tool  
 7. Presenting the project in a professional, academic format with visuals and metrics
 
@@ -323,7 +320,7 @@ This balance makes our dataset uniquely well-suited for evaluation and benchmark
 ---
 
 ## Deliverables  
-- Fully functioning Python CLI-based predictor with LLM symptom interpretation  
+- Fully functioning Python CLI-based predictor with LLM symptom interpretation and dynamic, AI-generated treatment recommendations (via OpenAI API). 
 - Persisted models for Random Forest, Logistic Regression, and MLP  
 - Bar charts and comparative visuals for accuracy, precision, recall, and F1  
 - Presentation deck with full methodology, results, visualizations, and critical analysis  
