@@ -203,17 +203,16 @@ The dataset used was initially derived from publicly available Kaggle sources. P
    - Status: Completed Evaluation. Decision made to defer T5 integration due to performance limitations compared to the GPT-4o baseline. See "Evaluation of Local T5 Model" section below for details.
 
 2. **Refactor CLI to Support Model Choice**  
-   Priority: High  
-   - Allow user to select model (RF, LR, MLP) at runtime
+   Priority: High
+   - Status: **Completed.** CLI now prompts user to select RF, LR, or MLP model at runtime.
 
 3. **Persist All Models**  
    Priority: High  
-   - Save Logistic Regression as `lr_model.pkl`  
-   - Save MLP weights as `mlp_model.pth`
+   - Status: **Completed.** `model_training.py` now saves LR (`lr_model.pkl`) and MLP (`mlp_model.pth`) alongside RF model.
 
 4. **Implement PyTorch Model Loader for CLI**  
    Priority: High  
-   - Add functionality to load MLP for inference within CLI
+   - Status: **Completed.** `predict_cli.py` now correctly loads the saved MLP model (`mlp_model.pth`) and uses it for prediction when selected.
 
 5. **Expand Feature Selection**  
    Priority: Medium  
