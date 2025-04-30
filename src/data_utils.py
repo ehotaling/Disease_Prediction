@@ -108,3 +108,61 @@ def load_and_clean_data(file_path: str, dataset_type: str):
         return clean_training_data(df)
     else:
         raise ValueError("Invalid dataset_type specified. Expected 'training'.")
+
+
+# ============================================================
+# Test Block (Temporary - run this file directly to test)
+# ============================================================
+if __name__ == "__main__":
+    print("--- Running Test for data_utils.py ---")
+
+    # Define the path to your new training data CSV
+    # Assumes this script is in 'src/' and data is in '../data/'
+    test_data_path = "../data/training_data.csv"
+
+    try:
+        # Call the main loading function
+        print(f"\nAttempting to load and clean: {test_data_path}")
+        cleaned_df = load_and_clean_data(file_path=test_data_path, dataset_type='training')
+
+        print("\n--- Test Results ---")
+        print(f"Successfully loaded and cleaned data.")
+        print(f"Shape of cleaned DataFrame: {cleaned_df.shape}")
+
+        # Print some info about the cleaned DataFrame
+        print("\nDataFrame Info:")
+        cleaned_df.info()  # Shows column types and non-null counts
+
+        print("\nFirst 5 rows of cleaned data:")
+        print(cleaned_df.head())
+
+        # Check the target column ('prognosis')
+        if 'prognosis' in cleaned_df.columns:
+            print("\nValue counts for 'prognosis' column (Top 20):")
+            print(cleaned_df['prognosis'].value_counts().head(20))
+            print(f"Total unique prognosis values: {cleaned_df['prognosis'].nunique()}")
+        else:
+            print("\n'prognosis' column not found after cleaning.")
+
+        # Check a few feature columns for data types and values
+        if len(cleaned_df.columns) > 1:
+            sample_feature_cols = cleaned_df.columns[1:min(6, len(cleaned_df.columns))]  # Look at first 5 features
+            print(f"\nChecking sample feature columns ({list(sample_feature_cols)}):")
+            for col in sample_feature_cols:
+                print(f"  Column '{col}': dtype={cleaned_df[col].dtype}, unique values={cleaned_df[col].unique()}")
+
+    except ValueError as ve:
+        print(f"\n--- Test Failed ---")
+        print(f"ValueError: {ve}")
+    except FileNotFoundError as fnf:
+        print(f"\n--- Test Failed ---")
+        print(f"FileNotFoundError: {fnf}")
+        print("Please ensure 'training_data.csv' exists in the '../data/' directory.")
+    except Exception as e:
+        print(f"\n--- Test Failed ---")
+        print(f"An unexpected error occurred: {e}")
+        import traceback
+
+        traceback.print_exc()  # Print detailed error traceback
+
+    print("\n--- End of Test ---")
