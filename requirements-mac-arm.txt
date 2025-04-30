@@ -1,0 +1,17 @@
+# MacOS ARM-optimized Python requirements
+# No PyTorch index override needed – native wheels are available on PyPI
+
+pandas
+numpy
+scikit-learn
+matplotlib
+joblib
+rapidfuzz
+openai
+python-dotenv
+tabulate
+
+# PyTorch and friends (macOS ARM-compatible, from PyPI)
+torch==2.2.2
+torchvision==0.17.2
+torchaudio==2.2.2
