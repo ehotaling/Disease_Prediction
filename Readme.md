@@ -23,7 +23,7 @@ and prediction via a CLI interface.
 ```
 Disease_Prediction/
 ├── data/                  # Contains raw .csv datasets
-│   └── training_data.csv  # (Will be replaced with new dataset)
+│   └── training_data.csv  # Contains training data
 ├── models/                # Stores pre-trained models
 │   ├── rf_model.pkl
 │   ├── lr_model.pkl

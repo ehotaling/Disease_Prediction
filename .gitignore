@@ -2,3 +2,4 @@
 /models/
 /.venv/
 /.idea
+/data/*.csv
