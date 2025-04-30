@@ -2,7 +2,7 @@
 # No PyTorch index override needed – native wheels are available on PyPI
 
 pandas
-numpy
+numpy<2.0.0
 scikit-learn
 matplotlib
 joblib

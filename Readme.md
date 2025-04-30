@@ -95,6 +95,31 @@ Install required Python packages depending on your system architecture and avail
 
 ---
 
+###  NumPy Compatibility Notice
+
+All `requirements-*.txt` files pin NumPy to `<2.0.0` for stability and compatibility across platforms.
+
+**Why this is necessary:**
+
+- NumPy 2.0 introduces a breaking change to its internal C-extension API (`_ARRAY_API`).
+- Many libraries in this project (including **PyTorch**, **scikit-learn**, and **joblib**) are still built against NumPy 1.x and may crash or fail to import if NumPy 2.x is installed.
+- This affects **all platforms**, including Windows, macOS (ARM and Intel), and Linux.
+
+**Example error (macOS ARM):**
+
+A module that was compiled using NumPy 1.x cannot be run in NumPy 2.0.2...
+
+
+**Temporary Fix:**
+Until full ecosystem support for NumPy 2.0 is released, we have pinned:
+```txt
+numpy<2.0.0 
+```
+in requirements-gpu.txt, requirements-cpu.txt, and requirements-mac-arm.txt.
+This ensures consistent behavior across devices and avoids cryptic import-time crashes.
+
+
+
 ##  Environment Variables
 
 Create a `.env` file at the root of the project with the following contents:

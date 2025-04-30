@@ -1,7 +1,7 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 
 pandas
-numpy
+numpy<2.0.0
 scikit-learn
 matplotlib
 joblib
