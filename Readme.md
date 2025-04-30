@@ -18,6 +18,11 @@ and prediction via a CLI interface.
 
 ---
 
+## Dataset Link
+Before running the project, you must manually download the dataset used for training and prediction. 
+This dataset is not included in the repository due to its size and licensing.
+
+
 ##  Project Structure
 
 ```
@@ -170,6 +175,24 @@ Here is the recommended order for running the scripts:
 ---
 
 ## Dataset Summary
+
+### Download Required
+
+Before using this project, you must manually download the dataset from Kaggle:
+
+**Dataset URL:**  
+[https://www.kaggle.com/datasets/dhivyeshrk/diseases-and-symptoms-dataset?resource=download](https://www.kaggle.com/datasets/dhivyeshrk/diseases-and-symptoms-dataset?resource=download)
+
+After downloading:
+
+1. Unzip the file.
+2. Rename the file to `training_data.csv` if needed.
+3. Move the file to the project’s `data/` directory:
+    `Disease_Prediction/data/training_data.csv`
+
+> This file is required for all stages of the pipeline, including data cleaning, training, and prediction. It is not included in the repository due to licensing and file size.
+
+
 The current dataset, sourced from Kaggle (https://www.kaggle.com/datasets/dhivyeshrk/diseases-and-symptoms-dataset?resource=download), is an artificially generated collection designed to reflect potential real-world disease occurrence probabilities and symptom co-occurrences.
 
 Key characteristics:
