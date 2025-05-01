@@ -1,90 +1,124 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from collections import Counter
+import numpy as np # For isnull check consistency if needed
+
+# Import the primary data loading and cleaning utility function
 from data_utils import load_and_clean_data
 
 # ============================================================
 # File: clean_data.py
-# Purpose: Load, clean, and perform exploratory data analysis (EDA)
-#          on both the Diseases_Symptoms and training_data datasets.
+# Purpose: Perform Exploratory Data Analysis (EDA) on the cleaned
+#          training dataset to understand its basic characteristics,
+#          such as data shape, class distribution, and symptom frequency.
+#          Generates visualizations for key distributions.
 # ============================================================
 
 # -----------------------------
-# Define file paths for the datasets
+# Configuration
 # -----------------------------
-disease_symptoms_path = "../data/Diseases_Symptoms.csv"
+# Define the path to the training data CSV file.
+# This assumes the script is run from the 'src/' directory.
 training_data_path = "../data/training_data.csv"
 
-# -----------------------------
-# Load and clean the datasets using our common utility functions
-# -----------------------------
-disease_symptoms_df = load_and_clean_data(disease_symptoms_path, 'diseases_symptoms')
-training_df = load_and_clean_data(training_data_path, 'training')
+# Define constants for plotting top N items (to avoid overly crowded charts)
+N_CLASSES_TO_PLOT = 30  # Number of most frequent diseases to visualize
+N_SYMPTOMS_TO_PLOT = 50 # Number of most frequent symptoms to visualize
 
 # -----------------------------
-# EDA for training_data.csv
+# Load Cleaned Data
 # -----------------------------
-print("### EDA for training_data.csv ###\n")
-print("Shape:", training_df.shape)
-print("\nData Types:\n", training_df.dtypes)
-print("\nMissing Values:\n", training_df.isnull().sum())
+print("Loading training data for EDA...")
+try:
+    # Use the centralized function from data_utils to load and apply initial cleaning.
+    # Expects a DataFrame with feature columns (0/1) and a 'prognosis' column (disease names).
+    training_df = load_and_clean_data(training_data_path, 'training')
+    print("Training data loaded successfully for EDA.")
+except Exception as e:
+    # Handle potential errors during data loading (e.g., file not found)
+    print(f"FATAL ERROR: Failed to load training data for EDA: {e}")
+    # Exit if data cannot be loaded, as EDA cannot proceed
+    exit()
 
-# Distribution of the target variable 'prognosis'
-print("\nDistribution of 'prognosis':")
+# -----------------------------
+# Basic Data Inspection
+# -----------------------------
+print("\n### EDA for Processed Training Data ###")
+# Display the dimensions (rows, columns) of the loaded DataFrame
+print(f"Shape after initial cleaning: {training_df.shape}")
+
+# Optional: Display data types and check for unexpected missing values
+# print("\nData Types:\n", training_df.dtypes)
+# missing_counts = training_df.isnull().sum()
+# print("\nColumns with Missing Values (if any):\n", missing_counts[missing_counts > 0])
+
+# --------------------------------------------------------
+# Analysis of Target Variable (Disease Distribution)
+# --------------------------------------------------------
+print("\nAnalyzing distribution of 'prognosis' (Disease Classes)...")
+# Calculate the frequency of each unique disease name in the 'prognosis' column
 prognosis_counts = training_df['prognosis'].value_counts()
-print(prognosis_counts)
+# Report the total number of unique diseases found after cleaning/filtering
+print(f"Total unique disease classes found: {len(prognosis_counts)}")
 
-# Plot the distribution of 'prognosis'
-plt.figure(figsize=(10, 6))
-prognosis_counts.plot(kind='bar')
-plt.title("Distribution of Prognosis (Target Variable)")
-plt.xlabel("Prognosis")
-plt.ylabel("Frequency")
+# Display the most frequent diseases to understand the head of the distribution
+print(f"\nTop {N_CLASSES_TO_PLOT} Most Frequent Diseases:")
+# Get the top N most frequent diseases and their counts
+top_prognosis_counts = prognosis_counts.head(N_CLASSES_TO_PLOT)
+print(top_prognosis_counts)
+
+# --- Plot: Disease Distribution (Top N) ---
+print(f"Generating plot for Top {N_CLASSES_TO_PLOT} disease distribution...")
+# Create a matplotlib figure and axes for the plot
+plt.figure(figsize=(15, 7)) # Set figure size for better readability
+# Create a bar chart using the counts of the top N diseases
+top_prognosis_counts.plot(kind='bar')
+# Set the title and axis labels
+plt.title(f"Distribution of Top {N_CLASSES_TO_PLOT} Most Frequent Diseases (Prognosis)")
+plt.xlabel("Disease")
+plt.ylabel("Frequency (Number of Samples)")
+# Rotate x-axis labels for better visibility if names are long
+plt.xticks(rotation=75, ha='right')
+# Adjust layout to prevent labels overlapping
 plt.tight_layout()
+# Optionally save the plot to the results directory
+# plt.savefig("../results/top_disease_distribution.png")
+# Display the plot
 plt.show()
 
-# Frequency of symptoms across the dataset (excluding the target column)
+# --------------------------------------------------------
+# Analysis of Features (Symptom Frequency)
+# --------------------------------------------------------
+print("\nAnalyzing Symptom Frequency...")
+# Identify symptom columns (all columns except the 'prognosis' target column)
 symptom_columns = training_df.columns.drop('prognosis')
+# Calculate the total number of times each symptom appears (sum of 1s in each column)
+# Sort the results to find the most frequent symptoms
 symptom_sums = training_df[symptom_columns].sum().sort_values(ascending=False)
-print("\nSymptom Frequency across the dataset:")
-print(symptom_sums)
 
-plt.figure(figsize=(20, 6))
-symptom_sums.plot(kind='bar')
-plt.title("Frequency of Symptoms in Training Data")
+# Display the most frequent symptoms
+print(f"\nTop {N_SYMPTOMS_TO_PLOT} Most Frequent Symptoms:")
+# Get the top N most frequent symptoms and their total counts
+top_symptom_sums = symptom_sums.head(N_SYMPTOMS_TO_PLOT)
+print(top_symptom_sums)
+
+# --- Plot: Symptom Frequency (Top N) ---
+print(f"Generating plot for Top {N_SYMPTOMS_TO_PLOT} symptom frequency...")
+# Create a new figure and axes
+plt.figure(figsize=(20, 7)) # Use a wider figure for potentially many symptoms
+# Create a bar chart using the sums of the top N symptoms
+top_symptom_sums.plot(kind='bar')
+# Set the title and axis labels
+plt.title(f"Frequency of Top {N_SYMPTOMS_TO_PLOT} Symptoms in Training Data")
 plt.xlabel("Symptom")
-plt.ylabel("Count")
+plt.ylabel("Total Occurrences")
+# Rotate x-axis labels
+plt.xticks(rotation=75, ha='right')
+# Adjust layout
 plt.tight_layout()
+# Optionally save the plot
+# plt.savefig("../results/top_symptom_frequency.png")
+# Display the plot
 plt.show()
 
-# -----------------------------
-# EDA for Diseases_Symptoms.csv
-# -----------------------------
-print("\n### EDA for Diseases_Symptoms.csv ###\n")
-print("Shape:", disease_symptoms_df.shape)
-print("\nData Types:\n", disease_symptoms_df.dtypes)
-print("\nMissing Values:\n", disease_symptoms_df.isnull().sum())
-
-# Count the number of symptoms per disease by splitting the comma-separated list
-disease_symptoms_df['Symptom_Count'] = disease_symptoms_df['Symptoms'].apply(lambda x: len(x.split(",")))
-print("\nSymptom Count per Disease (first 10 rows):")
-print(disease_symptoms_df[['Name', 'Symptom_Count']].head(10))
-
-# Frequency of individual symptoms:
-# 1. Split the 'Symptoms' column into individual symptoms.
-# 2. Strip extra spaces and convert to lowercase to handle inconsistent casing.
-all_symptoms = disease_symptoms_df['Symptoms'].str.split(",").sum()
-all_symptoms = [s.strip().lower() for s in all_symptoms]
-symptom_frequency = Counter(all_symptoms)
-top_symptoms = pd.DataFrame(symptom_frequency.most_common(10), columns=['Symptom', 'Frequency'])
-print("\nFrequency of Individual Symptoms in Diseases_Symptoms.csv (Top 10):")
-print(top_symptoms)
-
-plt.figure(figsize=(10, 6))
-plt.bar(top_symptoms['Symptom'], top_symptoms['Frequency'])
-plt.title("Top 10 Symptoms Frequency in Diseases_Symptoms.csv")
-plt.xlabel("Symptom")
-plt.ylabel("Frequency")
-plt.xticks(rotation=45)
-plt.tight_layout()
-plt.show()
+# End of script message
+print("\nExploratory Data Analysis script finished.")

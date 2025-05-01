@@ -147,7 +147,7 @@ Here is the recommended order for running the scripts:
 1. **clean_data.py** *(optional for EDA)*
    
    Run this to explore the dataset and confirm that your files are formatted and cleaned properly.
-    *(Note: Requires updating for the new dataset structure/features)*
+    
    ```bash
    python src/clean_data.py
    ```
