@@ -1,6 +1,8 @@
 import os
 import pandas as pd
 import numpy as np
+# Set environment variable BEFORE importing torch or other libraries that might initialize CUDA
+os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier

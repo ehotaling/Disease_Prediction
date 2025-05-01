@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import torch
 import torch.nn as nn
 import sys
+import numpy as np
 
 # Import necessary functions from local utility script
 from data_utils import load_and_clean_data
@@ -53,31 +54,39 @@ TREATMENT_INSTRUCTIONS = (
 # Load training data (once at the start) and Prepare Global Variables
 # -----------------------------
 try:
-    print("Loading and cleaning data...")
-    # Load data using the utility function
+    print("Loading and cleaning data (needed for feature columns)...")
+    # Load data just to get column names, we don't need y_encoded from here anymore
     df = load_and_clean_data(training_data_path, 'training')
-    # Extract feature column names (all columns except 'prognosis')
     feature_cols = list(df.columns.drop('prognosis'))
-    # Factorize the target column ('prognosis') to get integer labels and unique class names
-    y_encoded, uniques = pd.factorize(df['prognosis'])
-    print(f"Data loaded. Found {len(uniques)} unique classes. Using {len(feature_cols)} features.")
+    print(f"Data loaded. Using {len(feature_cols)} features.")
+
+    # --- Load the label mapping saved during training ---
+    label_map_path = "../models/label_mapping.npy"
+    print(f"Loading label mapping from {label_map_path}...")
+    uniques = np.load(label_map_path, allow_pickle=True) # Load the saved uniques array
+    print(f"Loaded mapping for {len(uniques)} unique classes (diseases).")
+    # --- End label mapping load ---
 
     # --- Construct the full extraction instructions string ---
-    # Create a comma-separated string of all feature names, quoting each
     features_str = ", ".join(f"'{feat}'" for feat in feature_cols)
-    # Format the template with the generated feature string
     EXTRACTION_INSTRUCTIONS = EXTRACTION_INSTRUCTIONS_TEMPLATE.format(feature_string=features_str)
     print(f"Length of extraction instructions: {len(EXTRACTION_INSTRUCTIONS)} characters.")
-    # Optional: Add a warning if instructions are excessively long
     if len(EXTRACTION_INSTRUCTIONS) > 15000:
          print("Warning: Extraction instructions are very long, may approach API limits.")
-    # --- End instruction construction ---
 
-except FileNotFoundError:
-    print(f"FATAL ERROR: Training data file not found at {training_data_path}")
+# Remove the old factorization line:
+# y_encoded, uniques = pd.factorize(df['prognosis']) # REMOVE THIS LINE
+
+except FileNotFoundError as e:
+    # Handle error if label mapping file is missing
+    if 'label_mapping.npy' in str(e):
+         print(f"FATAL ERROR: Label mapping file not found at {label_map_path}")
+         print("Please ensure model_training.py has been run successfully.")
+    else:
+         print(f"FATAL ERROR: Training data file not found at {training_data_path}")
     sys.exit(1)
 except Exception as e:
-    print(f"FATAL ERROR: Could not load or process training data: {e}")
+    print(f"FATAL ERROR: Could not load data or label mapping: {e}")
     sys.exit(1)
 
 # -----------------------------
