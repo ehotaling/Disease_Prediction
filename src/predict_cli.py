@@ -131,6 +131,8 @@ def interpret_symptoms_with_gpt(user_input):
             instructions=EXTRACTION_INSTRUCTIONS # Pre-formatted instructions including feature list
         )
 
+        # NEW: print raw response for debug
+        print(f"[DEBUG] Full raw response:\n{response}")
         # Initialize extracted text
         extracted_text = ""
         # Safely access the nested text output from the response object

@@ -106,10 +106,9 @@ Install required Python packages depending on your system architecture and avail
 * matplotlib
 * joblib
 * torch (CPU or GPU version)
-* rapidfuzz
 * openai
 * python-dotenv
-* tabulate 
+
 
 
 ---
@@ -207,10 +206,10 @@ the results/ directory.
 
 ### 3. **model_training.py**
 
-Loads the cleaned data using data_utils.py, filters out very rare classes (< 3 samples), and then trains 3 classifiers: 
-Logistic Regression, Random Forest, and MLP using PyTorch. It uses a train/validation/test split (64%/16%/20%) and 
-implements early stopping for the MLP based on validation accuracy to mitigate overfitting. Trained models (rf_model.pkl,
-lr_model.pkl, mlp_model.pth) and the label mapping (label_mapping.npy) are automatically saved in the models/ directory.
+Loads the cleaned data using data_utils.py, filters out very rare classes (< 3 samples, resulting in 748 classes used for training), 
+and then trains 3 classifiers: Logistic Regression, Random Forest, and MLP using PyTorch. It uses a train/validation/test split 
+(64%/16%/20%) and implements early stopping for the MLP based on validation accuracy to mitigate overfitting. 
+Trained models (rf_model.pkl, lr_model.pkl, mlp_model.pth) and the label mapping (label_mapping.npy) are automatically saved in the models/ directory.
 
 - Generates a log file (important_training_summary.log) in the results/ directory summarizing key training steps and final metrics.
 - Also generates model comparison tables (CSV, PNG) and performance plots (Accuracy, Precision, Recall, F1) in the results/ directory.
@@ -218,6 +217,14 @@ lr_model.pkl, mlp_model.pth) and the label mapping (label_mapping.npy) are autom
    ```bash
    python src/model_training.py
    ```
+#### Analysis Insights
+- The script successfully trains and evaluates all three models on the large, imbalanced dataset.
+- **Test Set Performance:** 
+  - Logistic Regression: Accuracy=86.40%, Macro F1=78.23%
+  - Random Forest: Accuracy=83.84%, Macro F1=83.33%
+  - PyTorch MLP: Accuracy=85.75%, Macro F1=83.70% (Best Validation Acc: 85.93%, stopped early)
+- **Comparison:** While Logistic Regression achieves the highest raw accuracy, its lower Macro F1 score suggests potential bias towards more frequent classes. Random Forest and the PyTorch MLP show more balanced performance across all classes (higher Macro F1), indicating better generalization on this imbalanced dataset. The MLP slightly edges out RF in Macro F1.
+  - These results establish a solid performance baseline (accuracies ~84-86%, Macro F1 ~78-84%) for the project.
 
 ### 4. **predict_cli.py**
 
@@ -276,9 +283,9 @@ Key characteristics:
 - **Features:** 377 binary symptom features (1 indicating presence, 0 absence).
 - **Filtering:** Classes with fewer than 3 samples were removed prior to modeling to enable stratified train/test splitting, resulting in **748 unique disease classes** used for training and evaluation.
 - **Nature:** Contains varying combinations of symptoms for diseases and exhibits significant **class imbalance** (long tail effect), unlike the previous idealized dataset. This presents a more realistic modeling challenge.
-- **Baseline Performance:** Initial model training (LR, RF, MLP) yields baseline accuracies in the mid-80s, reflecting the increased complexity compared to the previous dataset where 100% accuracy was achieved due to its separable nature.
+- **Baseline Performance:** Initial model training (LR, RF, MLP) yields baseline test accuracies in the 83.8% - 86.4% range and Macro F1 scores between 78.2% - 83.7%, reflecting the increased complexity compared to the previous dataset where 100% accuracy was achieved due to its separable nature.
 
-This dataset replaces the previous smaller, balanced dataset. Consequently, prior preprocessing steps like alias resolution and validation against a separate treatment mapping file are no longer applicable.
+- This dataset replaces the previous smaller, balanced dataset. Consequently, prior preprocessing steps like alias resolution and validation against a separate treatment mapping file are no longer applicable.
 
 ---
 
@@ -306,8 +313,7 @@ This dataset replaces the previous smaller, balanced dataset. Consequently, prio
 - EDA completed, including symptom frequency analysis and class distribution  
 - Chi-Squared and Random Forest feature selection conducted  
 - Models trained and evaluated: Random Forest, Logistic Regression, and PyTorch-based MLP  
-- All models achieved 100% test accuracy due to dataset separability. **Note** This originally referred to the prior, highly separable dataset (now deprecated). Current models trained on the new dataset exhibit **realistic baseline accuracy (83–87%)**, reflecting its increased complexity and class imbalance.
-- CLI built with GPT-4o mini for natural language symptom interpretation  
+- All models achieved 100% test accuracy due to dataset separability. **Note** This originally referred to the prior, highly separable dataset (now deprecated). Current models trained on the new dataset exhibit **realistic baseline accuracy (83.8%–86.4%) and Macro F1 (78.2%-83.7%)**, reflecting its increased complexity and class imbalance.- CLI built with GPT-4o mini for natural language symptom interpretation  
 - Predictions mapped to recommended treatments  
 - Model training and evaluation results plotted (accuracy, precision, recall, F1)  
 - Model persistence implemented for Random Forest (`rf_model.pkl`)  
@@ -336,7 +342,7 @@ Work completed since the midpoint presentation includes:
     - Implemented filtering in `model_training.py` to remove classes with < 3 samples, resulting in 748 classes used for modeling and enabling stratified splitting.
 - **Baseline Model Training (New Dataset):**
     - Successfully executed the refactored `model_training.py` pipeline on the full (filtered) new dataset.
-    - Trained LR, RF, and MLP models, achieving baseline accuracies in the mid-80s.
+    - Trained LR, RF, and MLP models, achieving baseline accuracies and Macro F1 scores as detailed under `model_training.py` in the "Order of Execution" section.    
     - Generated and saved model comparison metrics (CSV table, markdown table) and visualization plots (matplotlib table, bar charts) to a new `results/` directory.
 - **Dynamic Treatment Generation:** Implemented OpenAI API call (`client.responses.create`) within `predict_cli.py` to dynamically generate treatment recommendations based on the predicted disease, replacing the previous static lookup method. Includes necessary disclaimers. 
 - **Expanded Feature Selection:** Refactored `feature_selection.py` for the new dataset; added Mutual Information and RFE methods; implemented score normalization and merged ranking; added saving of scores and plots.
@@ -424,15 +430,14 @@ Work completed since the midpoint presentation includes:
 ### A. Current Limitations
 - **Artificial Dataset:** While large (~247k records, 773 initial diseases, 377 symptoms), the dataset used is artificially generated. It may lack the noise, nuances, missing values, and complex symptom correlations found in real-world clinical data. Potential biases from the generation process are unknown.
 - **Class Imbalance:** The dataset exhibits a significant class imbalance (long tail problem), even after filtering out the rarest classes (< 3 samples). This can affect model performance, particularly for less frequent diseases.
-- **Baseline Performance:** Current models (LR, RF, MLP) achieve baseline accuracies in the mid-80s. While reasonable for this complex task without tuning, there is significant room for improvement.
-- **Symptom Interpretation:** Relies on OpenAI API (GPT-4o mini), requiring an internet connection and API key. The quality of interpretation can impact prediction accuracy.
+- **Baseline Performance:** Current models (LR, RF, MLP) achieve baseline test accuracies in the 83.8% - 86.4% range and Macro F1 scores between 78.2% - 83.7%. While reasonable for this complex task without tuning, there is significant room for improvement.- **Symptom Interpretation:** Relies on OpenAI API (GPT-4o mini), requiring an internet connection and API key. The quality of interpretation can impact prediction accuracy.
 - **Treatment Generation:** The planned dynamic treatment generation via OpenAI API needs careful implementation and validation due to the sensitive nature of medical advice, and will carry strong disclaimers.
 
 ### B. Monitoring Overfitting
 - Unlike the previous idealized dataset which yielded 100% test accuracy with no signs of overfitting, the current models train on a complex dataset where overfitting is a potential concern.
 - The current `model_training.py` script now uses a **train/validation/test split**.
 - **Early stopping based on validation accuracy** is implemented for the PyTorch MLP to mitigate overfitting during its training.
-- Evaluation on the final test set provides an estimate of generalization, but further analysis (like k-fold cross-validation - Task #6) could provide more robust estimates. Current test performance (~83-87%) doesn't show signs of *severe* overfitting.
+- Evaluation on the final test set provides an estimate of generalization, but further analysis (like k-fold cross-validation - Task #6) could provide more robust estimates. Current test performance (accuracies ~84-86%, Macro F1 ~78-84%) doesn't show signs of *severe* overfitting.
 
 ### C. Future Work
 - **Test on Real-World Data:** Evaluate the pipeline using real clinical datasets (if available) to assess true performance.
@@ -446,8 +451,7 @@ Work completed since the midpoint presentation includes:
 - **Local NLP Exploration (Deferred):** Revisit the use of local open-source models for symptom interpretation if offline capability becomes critical and more powerful local models or fine-tuning techniques are explored (see "Evaluation of Local T5 Model" section).
 
 ### D. Summary 
-- The models demonstrate reasonable baseline performance (accuracies ~83-87%, macro F1 ~80-84%) on a large, complex, and imbalanced dataset featuring 748 disease classes and 377 symptoms.
-- This indicates the models are learning meaningful patterns beyond simple memorization seen in the previous idealized dataset.
+- The models demonstrate reasonable baseline performance (accuracies ~84-86%, Macro F1 ~78-84%) on a large, complex, and imbalanced dataset featuring 748 disease classes and 377 symptoms.- This indicates the models are learning meaningful patterns beyond simple memorization seen in the previous idealized dataset.
 - Current development focuses on integrating dynamic treatment generation and establishing robust training/evaluation pipelines, while future work will target performance improvement through feature engineering, model tuning, and advanced evaluation techniques.
 
 ### E. Note on Feature Reduction and Model Reliability 
