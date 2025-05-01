@@ -20,6 +20,7 @@ import torch # Ensure torch is imported early if used globally
 import torch.nn as nn
 import torch.optim as optim
 import copy
+import logging
 from torch.utils.data import DataLoader, TensorDataset
 
 # Set seeds for reproducibility
@@ -54,6 +55,49 @@ if not os.path.exists(model_dir):
 else:
     print(f"Directory already exists: {model_dir}")
 
+# -----------------------------
+# Create results directory (if needed)
+# -----------------------------
+
+results_dir = "../results"
+if not os.path.exists(results_dir):
+    os.makedirs(results_dir)
+    print(f"Created directory: {results_dir}")
+else:
+    print(f"Directory already exists: {results_dir}")
+
+# --- Configure Logging (File Only for Important Info) ---
+important_log_file_path = os.path.join(results_dir, "important_training_summary.log")
+
+# Create a specific logger instance
+file_logger = logging.getLogger('summary_logger')
+file_logger.setLevel(logging.INFO) # Set the minimum level for this logger
+
+# Prevent propagation to root logger (if it has handlers like console)
+file_logger.propagate = False
+
+# Remove existing handlers for this specific logger (if any)
+for handler in file_logger.handlers[:]:
+    file_logger.removeHandler(handler)
+
+# Create File handler ONLY
+file_handler = logging.FileHandler(important_log_file_path, mode='w') # 'w' to overwrite
+file_handler.setLevel(logging.INFO)
+
+# Create formatter and add it to the file handler
+# Simple format for the summary log
+formatter = logging.Formatter('%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+file_handler.setFormatter(formatter)
+
+# Add the file handler to the logger
+file_logger.addHandler(file_handler)
+
+# Log the start and the log file path itself
+file_logger.info("Starting model training script run.")
+file_logger.info("Saving important summary log to: %s", important_log_file_path)
+print(f"Saving important summary log to: {important_log_file_path}") # Also print this info
+# --- End of Logging Setup ---
+
 
 # -----------------------------
 # Load and prepare the dataset
@@ -62,6 +106,7 @@ training_data_path = "../data/training_data.csv"
 print("Loading dataset...")
 df = load_and_clean_data(training_data_path, 'training')
 print("Dataset loaded.")
+file_logger.info("Dataset loaded from: %s", training_data_path)
 
 print(f"Filtering classes with few samples...")
 min_samples_per_class = 3 # Or 2, or 5 - your choice
@@ -92,6 +137,8 @@ filtered_classes = df_filtered[target_column].nunique()
 
 print(f"\nRemoved {original_rows - filtered_rows} rows belonging to {original_classes - filtered_classes} classes with < {min_samples_per_class} samples.")
 print(f"Shape after filtering: {df_filtered.shape}")
+file_logger.info("Data shape after filtering classes with < %d samples: %s", min_samples_per_class, df_filtered.shape) # Add summary to file log
+file_logger.info("Removed %d rows and %d classes.", original_rows - filtered_rows, original_classes - filtered_classes) # Add summary to file log
 
 # Now use df_filtered for defining X and y
 X = df_filtered.drop(columns=[target_column]) # Use variable for target column name
@@ -102,10 +149,12 @@ y = df_filtered[target_column]
 print("\nFactorizing filtered target labels...")
 y_encoded, uniques = pd.factorize(y)
 print(f"Number of unique classes after filtering: {len(uniques)}")
+file_logger.info("Number of unique classes: %d", len(uniques)) # Add for file log
 # Save the label mapping for future prediction use
 label_map_path = os.path.join(model_dir, "label_mapping.npy")
 np.save(label_map_path, uniques)
 print(f"Label mapping saved to {label_map_path}")
+file_logger.info("Label mapping saved to: %s", label_map_path) # Add for file log
 
 
 # Split the filtered data
@@ -124,6 +173,7 @@ X_train, X_val, y_train_encoded, y_val_encoded = train_test_split(
 print(f"Training set size:     {X_train.shape[0]} samples")
 print(f"Validation set size:   {X_val.shape[0]} samples")
 print(f"Test set size:         {X_test.shape[0]} samples")
+file_logger.info("Data split sizes - Train: %d, Validation: %d, Test: %d", X_train.shape[0], X_val.shape[0], X_test.shape[0]) # Add summary to file log
 
 
 # -----------------------------
@@ -137,6 +187,7 @@ print("Evaluating Logistic Regression...")
 y_pred_lr = lr_model.predict(X_test)
 acc_lr = accuracy_score(y_test_encoded, y_pred_lr)
 print("Logistic Regression Accuracy: {:.2f}%".format(acc_lr * 100))
+file_logger.info("Logistic Regression - Test Accuracy: %.2f%%", acc_lr * 100) # Add final acc to file log
 # print("Classification Report:\n", classification_report(y_test_encoded, y_pred_lr, zero_division=0))
 
 # Save the Logistic Regression model
@@ -144,6 +195,7 @@ print("Saving Logistic Regression model...")
 lr_model_path = os.path.join(model_dir, "lr_model.pkl")
 joblib.dump(lr_model, lr_model_path)
 print(f"Logistic Regression model saved to {lr_model_path}")
+file_logger.info("Logistic Regression model saved to: %s", lr_model_path) # Add for file log
 
 # -----------------------------
 # Model 2: Random Forest Classifier (scikit-learn)
@@ -156,6 +208,7 @@ print("Evaluating Random Forest...")
 y_pred_rf = rf_model.predict(X_test)
 acc_rf = accuracy_score(y_test_encoded, y_pred_rf)
 print("Random Forest Accuracy: {:.2f}%".format(acc_rf * 100))
+file_logger.info("Random Forest - Test Accuracy: %.2f%%", acc_rf * 100) # Add final acc to file log
 # print("Classification Report:\n", classification_report(y_test_encoded, y_pred_rf, zero_division=0))
 
 # Save the Random Forest model
@@ -163,6 +216,7 @@ print("Saving Random Forest model...")
 rf_model_path = os.path.join(model_dir, "rf_model.pkl")
 joblib.dump(rf_model, rf_model_path)
 print(f"Random Forest model saved to {rf_model_path}")
+file_logger.info("Random Forest model saved to: %s", rf_model_path) # Add for file log
 
 # -----------------------------
 # Model 3: MLP Classifier using PyTorch
@@ -208,6 +262,7 @@ num_classes = len(uniques)
 # Check for available device (GPU or CPU)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
+file_logger.info("MLP using device: %s", device) # Add for file log
 mlp_model = MLPClassifier(input_dim, num_classes).to(device) # Move model to device
 
 criterion = nn.CrossEntropyLoss()
@@ -218,6 +273,7 @@ best_val_acc = 0.0
 epochs_without_improvement = 0
 patience = 3  # Stop training if no improvement after 3 epochs
 print(f"Starting MLP training for {num_epochs} epochs...")
+file_logger.info("MLP training started (Max Epochs: %d, Patience: %d)", num_epochs, patience) # Add for file log
 for epoch in range(num_epochs):
     mlp_model.train()
     epoch_loss = 0
@@ -263,11 +319,14 @@ for epoch in range(num_epochs):
         print(f"  No improvement. Patience: {epochs_without_improvement}/{patience}")
         if epochs_without_improvement >= patience:
             print("  Early stopping triggered.")
+            file_logger.info("MLP early stopping triggered at epoch %d. Best Validation Acc: %.2f%%", epoch + 1,
+                             best_val_acc * 100)  # Add for file log
             break
 
 # Load best model before final evaluation on test set
 mlp_model.load_state_dict(best_model_state)
 print("Best model loaded for final evaluation.")
+file_logger.info("MLP training finished. Best Validation Acc: %.2f%%", best_val_acc * 100) # Add summary to file log
 
 
 print("MLP training complete.")
@@ -293,6 +352,7 @@ y_test_np = np.array(all_labels) # Use collected true labels
 
 acc_torch = accuracy_score(y_test_np, predicted_np)
 print("PyTorch MLP Accuracy: {:.2f}%".format(acc_torch * 100))
+file_logger.info("PyTorch MLP - Test Accuracy: %.2f%%", acc_torch * 100) # Add final acc to file log
 # print("Classification Report:\n", classification_report(y_test_np, predicted_np, zero_division=0)) # Commented out
 
 # Save the PyTorch MLP model state dictionary
@@ -305,6 +365,7 @@ torch.save({
 }, mlp_model_path)
 
 print(f"PyTorch MLP model state_dict saved to {mlp_model_path}")
+file_logger.info("PyTorch MLP model saved to: %s", mlp_model_path) # Add for file log
 
 # -------------------------------------
 # Compute final performance metrics for all models
@@ -324,6 +385,11 @@ f1_rf = f1_score(y_test_encoded, y_pred_rf, average='macro', zero_division=0)
 precision_torch = precision_score(y_test_np, predicted_np, average='macro', zero_division=0)
 recall_torch = recall_score(y_test_np, predicted_np, average='macro', zero_division=0)
 f1_torch = f1_score(y_test_np, predicted_np, average='macro', zero_division=0)
+
+file_logger.info("--- Final Performance Metrics (Macro Avg) ---") # Add header to file log
+file_logger.info("Logistic Regression - Precision: %.2f%%, Recall: %.2f%%, F1: %.2f%%", precision_lr*100, recall_lr*100, f1_lr*100)
+file_logger.info("Random Forest - Precision: %.2f%%, Recall: %.2f%%, F1: %.2f%%", precision_rf*100, recall_rf*100, f1_rf*100)
+file_logger.info("PyTorch MLP - Precision: %.2f%%, Recall: %.2f%%, F1: %.2f%%", precision_torch*100, recall_torch*100, f1_torch*100)
 
 # Create lists for each metric (converted to percentages)
 model_names = ["Logistic Regression", "Random Forest", "PyTorch MLP"]
@@ -362,6 +428,7 @@ if not os.path.exists(results_dir):
 # Now save the table
 comparison_df.to_csv(os.path.join(results_dir, "model_comparison.csv"))
 print(f"\nComparison table saved to {os.path.join(results_dir, 'model_comparison.csv')}")
+file_logger.info("Model comparison table saved to: %s", os.path.join(results_dir, "model_comparison.csv")) # Add for file log
 
 
 # -------------------------------------
@@ -404,6 +471,8 @@ plt.tight_layout(pad=2.0)
 # if not os.path.exists(results_dir): os.makedirs(results_dir)
 plt.savefig(os.path.join(results_dir, "model_comparison_table.png"), bbox_inches='tight', dpi=150)
 print(f"Comparison table plot saved to {os.path.join(results_dir, 'model_comparison_table.png')}")
+file_logger.info("Model comparison table plot saved to: %s", os.path.join(results_dir, "model_comparison_table.png")) # Add for file log
+
 
 # -------------------------------------
 # Plotting (Combined Bar Charts)
@@ -459,6 +528,9 @@ for i, f1 in enumerate(f1_scores):
 plt.tight_layout()
 plt.savefig(os.path.join(results_dir, "f1_score_comparison.png"))
 
+file_logger.info("Comparison plots (Accuracy, Precision, Recall, F1) saved in %s", results_dir) # Add summary to file log
+
 print("Displaying plots...")
 plt.show()
 print("Model training script finished.")
+file_logger.info("Model training script finished.") # Add for file log
