@@ -296,7 +296,13 @@ def main():
                 # Determine device (CPU/GPU) for loading
                 map_location = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
                 # Load the saved weights (state dictionary) onto the determined device
-                mlp_model_instance.load_state_dict(torch.load(mlp_model_path, map_location=map_location))
+                # Load full checkpoint (state_dict + metadata)
+                checkpoint = torch.load(mlp_model_path, map_location=map_location)
+                # OPTIONAL: Validate input_dim and num_classes match expectations
+                if checkpoint.get('input_dim') != input_dim or checkpoint.get('num_classes') != num_classes:
+                    print("Warning: MLP input dimensions or number of classes do not match current config.")
+                mlp_model_instance.load_state_dict(checkpoint['model_state_dict'])
+
                 # Set the model to evaluation mode (disables dropout, etc.)
                 mlp_model_instance.eval()
                 # Assign the loaded instance
