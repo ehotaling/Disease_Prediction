@@ -53,10 +53,10 @@ Disease_Prediction/
 │   └── top_features_merged.png    # Plot of top features (Merged Score)
 │     
 ├── src/                     # Python scripts (all core logic lives here)
-│   ├── data_utils.py
-│   ├── clean_data.py
-│   ├── feature_selection.py
-│   ├── model_training.py
+│   ├── data_utils.py        # Utility functions for loading and basic cleaning (normalization, renaming) of data. Used by other scripts.
+│   ├── clean_data.py        # Performs EDA (distribution analysis, plotting) on cleaned data.
+│   ├── feature_selection.py # Calculates and compares feature importance using various methods.
+│   ├── model_training.py    # Trains, evaluates, and saves the classification models.
 │   └── predict_cli.py       # Core prediction and API interaction logic
 ├── .env                     # Environment variables for API keys
 ├── .env.example             # Template for required environment variables
@@ -161,9 +161,10 @@ Here is the recommended order for running the scripts:
    ```bash
    python src/clean_data.py
    ```
-Performs Exploratory Data Analysis (EDA) on the cleaned training data. It loads the data (using data_utils.py), 
-confirms its dimensions (approx. 247k rows, 377 features, 773 classes), analyzes the distribution of disease classes 
-and symptom frequencies, and generates plots visualizing these distributions.
+Performs Exploratory Data Analysis (EDA) on the training data. It utilizes data_utils.py for initial loading and basic 
+cleaning (like target column normalization and renaming). It then confirms dataset dimensions (approx. 247k rows, 377 
+features, 773 classes), analyzes the distribution of disease classes and symptom frequencies, and generates plots 
+visualizing these distributions.
 
 #### Analysis Insights
 
@@ -180,10 +181,11 @@ and symptom frequencies, and generates plots visualizing these distributions.
 python src/feature_selection.py
 ```
 
-Identifies influential features (symptoms) using multiple methods:  
-Chi-Squared Test, Mutual Information, Random Forest Importance (Gini), and Recursive Feature Elimination (RFE) with a Decision Tree estimator.  
-It generates a **merged ranking** based on normalized scores/ranks from these methods.  
-Individual scores/rankings (`.csv`) and plots (`.png`) visualizing the top features for each method and the merged result are saved to the `results/` directory.
+Loads the cleaned data using data_utils.py and identifies influential features (symptoms) using multiple methods: 
+Chi-Squared Test, Mutual Information, Random Forest Importance (Gini), and Recursive Feature Elimination (RFE) with a 
+Decision Tree estimator. It generates a merged ranking based on normalized scores/ranks from these methods. Individual 
+scores/rankings (CSV) and plots (PNG) visualizing the top features for each method and the merged result are saved to 
+the results/ directory.
 
 #### Analysis Insights
 
@@ -205,14 +207,13 @@ Individual scores/rankings (`.csv`) and plots (`.png`) visualizing the top featu
 
 ### 3. **model_training.py**
 
-   Trains 3 classifiers:
+Loads the cleaned data using data_utils.py, filters out very rare classes (< 3 samples), and then trains 3 classifiers: 
+Logistic Regression, Random Forest, and MLP using PyTorch. It uses a train/validation/test split (64%/16%/20%) and 
+implements early stopping for the MLP based on validation accuracy to mitigate overfitting. Trained models (rf_model.pkl,
+lr_model.pkl, mlp_model.pth) and the label mapping (label_mapping.npy) are automatically saved in the models/ directory.
 
-   - Logistic Regression
-   - Random Forest
-   - MLP using PyTorch
-   - Uses a train/validation/test split (64%/16%/20%)
-   - Implements early stopping for MLP based on validation accuracy
-   Automatically saves the trained models (`rf_model.pkl`, `lr_model.pkl`, `mlp_model.pth`) in the `models/` directory.
+- Generates a log file (important_training_summary.log) in the results/ directory summarizing key training steps and final metrics.
+- Also generates model comparison tables (CSV, PNG) and performance plots (Accuracy, Precision, Recall, F1) in the results/ directory.
 
    ```bash
    python src/model_training.py
@@ -220,7 +221,7 @@ Individual scores/rankings (`.csv`) and plots (`.png`) visualizing the top featu
 
 ### 4. **predict_cli.py**
 
-   Interactive command-line interface for real-time symptom prediction:
+   Loads necessary components (trained models, label mapping, feature list derived from data loaded via data_utils.py) and provides an interactive command-line interface for real-time symptom prediction:
 
    - Accepts user input (natural language symptoms).
    - Interprets symptoms using GPT-4o mini via OpenAI API.
