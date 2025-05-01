@@ -40,7 +40,18 @@ Disease_Prediction/
 │   ├── accuracy_comparison.png
 │   ├── f1_score_comparison.png
 │   ├── recall_comparison.png
-│   └── precision_comparison.png
+│   ├── precision_comparison.png
+│   ├── feature_scores_chi2.csv
+│   ├── feature_scores_mi.csv
+│   ├── feature_scores_rf.csv
+│   ├── feature_scores_rfe.csv
+│   ├── feature_scores_merged.csv
+│   ├── top_features_chi2.png
+│   ├── top_features_mi.png
+│   ├── top_features_rf.png
+│   ├── top_features_rfe.png
+│   └── top_features_merged.png
+│   
 │   
 ├── src/                     # Python scripts (all core logic lives here)
 │   ├── data_utils.py
@@ -158,11 +169,15 @@ Here is the recommended order for running the scripts:
    python src/feature_selection.py
    ```
 
-   Identifies the most predictive symptoms using:
+    Identifies influential features using multiple methods:
     
-   - Chi-Squared Scores
-   - Random Forest Feature Importances
-    *(Note: Requires updating for the new dataset features)*
+   - Chi-Squared Test
+   - Mutual Information
+   - Random Forest Importance (Gini)
+   - Recursive Feature Elimination (RFE) with Decision Tree estimator
+   
+   Generates a merged ranking based on normalized scores.
+   Saves individual scores/rankings and plots to the `results/` directory.
 
 3. **model_training.py**
 
@@ -252,7 +267,7 @@ This dataset replaces the previous smaller, balanced dataset. Consequently, prio
 
 ## Key Objectives
 1. Data preprocessing and normalization 
-2. Feature selection using Chi-Squared scores and model-based importances 
+2. Feature selection using multiple techniques (Chi-Squared, Mutual Information, RF Importance, RFE) and creation of a merged feature ranking 
 3. Model training and evaluation (Random Forest, Logistic Regression, MLP) 
 4. Integration of natural language interpretation into CLI (using GPT-4o; T5 evaluation completed & deferred)
 5. Generating treatment recommendations dynamically via OpenAI API based on predictions 
@@ -299,6 +314,8 @@ Work completed since the midpoint presentation includes:
     - Trained LR, RF, and MLP models, achieving baseline accuracies in the mid-80s.
     - Generated and saved model comparison metrics (CSV table, markdown table) and visualization plots (matplotlib table, bar charts) to a new `results/` directory.
 - **Dynamic Treatment Generation:** Implemented OpenAI API call (`client.responses.create`) within `predict_cli.py` to dynamically generate treatment recommendations based on the predicted disease, replacing the previous static lookup method. Includes necessary disclaimers. 
+- **Expanded Feature Selection:** Refactored `feature_selection.py` for the new dataset; added Mutual Information and RFE methods; implemented score normalization and merged ranking; added saving of scores and plots.
+
 ---
 
 ## To-Do List (Prioritized)
@@ -321,8 +338,8 @@ Work completed since the midpoint presentation includes:
 
 5. **Expand Feature Selection**  
    Priority: Medium  
-   - Add Mutual Information and Recursive Feature Elimination (RFE)  
-   - Create merged importance rankings across methods
+   - Status: **Completed.** Added Mutual Information, RFE; implemented merged ranking. Results saved to `results/`.
+   
 
 6. **Improve Model Training**  
    Priority: Medium  
