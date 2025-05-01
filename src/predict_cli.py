@@ -259,7 +259,7 @@ def main():
     """
     Main function to run the interactive Command Line Interface (CLI).
     Handles model selection, loading, symptom input, interpretation,
-    prediction, treatment recommendation, and user interaction loop.
+    prediction, optional treatment recommendation, and user interaction loop.
     """
     print("\nWelcome to the Disease Prediction CLI!\n")
 
@@ -433,17 +433,30 @@ def main():
                  # If prediction failed, disease name is None
                  predicted_disease = None
 
-            # 5. Get Treatment Recommendation via OpenAI API (only if disease was predicted)
-            treatment_recommendation = "N/A" # Default value
+            # -- REFACTOR START: Optional Treatment Info --
+            treatment_recommendation = "N/A" # Default value if prediction fails or user declines
+            display_treatment = False # Flag to control display
+
             if predicted_disease: # Check if prediction was successful
-                 treatment_recommendation = get_treatment_recommendation_gpt(predicted_disease)
+                # Ask the user if they want treatment info
+                print("-" * 20) # Separator
+                print(f"Predicted Disease: {predicted_disease}") # Show predicted disease first
+                ask_treatment = input(f"Would you like to see general treatment information for '{predicted_disease}'? (yes/no): ").strip().lower()
+                if ask_treatment in ["yes", "y"]:
+                    treatment_recommendation = get_treatment_recommendation_gpt(predicted_disease)
+                    display_treatment = True # Set flag to display it
+                else:
+                    treatment_recommendation = "Treatment information not requested." # Set specific message
+                    display_treatment = True # Set flag to display the "not requested" message
+            # -- REFACTOR END --
 
             # 6. Display Results to the user
             print("\n--- Prediction Results ---")
             print(f"Model Used: {model_name}")
             if predicted_disease: # Check if prediction and name lookup succeeded
-                print(f"Predicted Disease: {predicted_disease}")
-                print(f"Recommended Treatment Info:\n{treatment_recommendation}")
+                # Disease name is already printed before asking for treatment info
+                if display_treatment: # Check if we should display treatment info (fetched or 'not requested')
+                    print(f"Recommended Treatment Info:\n{treatment_recommendation}")
             else:
                 # Message if prediction failed or label was invalid
                 print("Could not predict disease based on input or prediction error occurred.")
@@ -457,7 +470,6 @@ def main():
     # Final message when exiting the loop
     print("\nThank you for using the Disease Prediction CLI. Stay healthy!")
 
-
-# Standard Python entry point
+# Standard Python entry point (Keep this as is)
 if __name__ == "__main__":
     main()
