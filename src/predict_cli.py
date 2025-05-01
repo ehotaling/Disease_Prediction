@@ -1,66 +1,81 @@
 import pandas as pd
 import numpy as np
-import joblib  # For loading the pre-trained model
-# from transformers import T5ForConditionalGeneration, T5Tokenizer # Not used anymore
-from data_utils import load_and_clean_data
+import joblib
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
 import torch
 import torch.nn as nn
-import sys # For exit
+import sys
+
+# Import necessary functions from local utility script
+from data_utils import load_and_clean_data
 
 # ============================================================
 # File: predict_cli.py
 # Purpose: Provide a command-line interface (CLI) for making predictions.
-#          Uses OpenAI API (GPT-4o mini) to interpret user-input symptoms,
-#          loads a selected pre-trained model (RF, LR, or MLP),
-#          predicts the disease, and generates treatment recommendations via OpenAI API.
+#          Uses OpenAI API (GPT-4o mini) for stateless symptom interpretation
+#          and treatment recommendation generation. Loads a selected pre-trained
+#          model (RF, LR, or MLP) for disease prediction.
 # ============================================================
 
 # -----------------------------
 # Configuration and Paths
 # -----------------------------
+# Define relative paths to saved model files and training data
 rf_model_path = "../models/rf_model.pkl"
 lr_model_path = "../models/lr_model.pkl"
 mlp_model_path = "../models/mlp_model.pth"
 training_data_path = "../data/training_data.csv"
 
+# -----------------------------
+# Global Constants
+# -----------------------------
+# Instructions for the OpenAI API call for symptom extraction.
+# This template will be formatted with the actual feature list after loading data.
+EXTRACTION_INSTRUCTIONS_TEMPLATE = (
+    "You are a medical symptom extraction assistant. "
+    "Identify symptom keywords mentioned in the user's text that EXACTLY MATCH one of the following valid symptom names: {feature_string}. "
+    "Return ONLY a single‐line, comma‐separated list of the EXACT matching valid symptom names found in the text. "
+    "Do NOT include symptoms not on the list. Do NOT include explanations, numbers, bullets, newlines or extra text. JUST the list."
+)
+# Global variable to hold the fully formatted extraction instructions
+EXTRACTION_INSTRUCTIONS = ""
+
+# Instructions for the OpenAI API call for treatment recommendation.
+TREATMENT_INSTRUCTIONS = (
+    "You are a helpful assistant providing general information about medical conditions. "
+    "Summarize typical treatment approaches concisely for the given disease name. Start directly with the information. "
+    "IMPORTANT: Explicitly state that this information is not a substitute for professional medical advice."
+)
 
 # -----------------------------
-# Load T5 model for symptom interpretation
+# Load training data (once at the start) and Prepare Global Variables
 # -----------------------------
-# t5_model_name = 't5-base' # Or 't5-base', etc.
-# t5_tokenizer = T5Tokenizer.from_pretrained(t5_model_name)
-# t5_model = T5ForConditionalGeneration.from_pretrained(t5_model_name)
-# print(f"T5 model ({t5_model_name}) loaded successfully.")
-
-# -----------------------------
-# Load training data to extract feature names and target mapping
-# -----------------------------
-# Wrap data loading in try-except at the start
 try:
     print("Loading and cleaning data...")
+    # Load data using the utility function
     df = load_and_clean_data(training_data_path, 'training')
+    # Extract feature column names (all columns except 'prognosis')
     feature_cols = list(df.columns.drop('prognosis'))
-    # Factorize the target column to get the mapping of integer labels to disease names.
+    # Factorize the target column ('prognosis') to get integer labels and unique class names
     y_encoded, uniques = pd.factorize(df['prognosis'])
-    print(f"Data loaded. Found {len(uniques)} unique classes (diseases).")
+    print(f"Data loaded. Found {len(uniques)} unique classes. Using {len(feature_cols)} features.")
 
-    # For symptom extraction
-    features_str = ", ".join(feature_cols)
-    EXTRACTION_INSTRUCTIONS = (
-            "You are a medical symptom extraction assistant.  "
-            "These are the only valid symptom names: " + features_str + ".  "
-            "When I give you user text, return ONLY a single‐line, comma‐separated list "
-            "of the EXACT matching symptoms.  Do NOT include any explanations, numbers, bullets, "
-            "newlines or extra text.  JUST the list."
-    )
+    # --- Construct the full extraction instructions string ---
+    # Create a comma-separated string of all feature names, quoting each
+    features_str = ", ".join(f"'{feat}'" for feat in feature_cols)
+    # Format the template with the generated feature string
+    EXTRACTION_INSTRUCTIONS = EXTRACTION_INSTRUCTIONS_TEMPLATE.format(feature_string=features_str)
+    print(f"Length of extraction instructions: {len(EXTRACTION_INSTRUCTIONS)} characters.")
+    # Optional: Add a warning if instructions are excessively long
+    if len(EXTRACTION_INSTRUCTIONS) > 15000:
+         print("Warning: Extraction instructions are very long, may approach API limits.")
+    # --- End instruction construction ---
 
-    # print("Target classes (label mapping):", uniques.tolist()) # Can be very long
 except FileNotFoundError:
     print(f"FATAL ERROR: Training data file not found at {training_data_path}")
-    sys.exit(1) # Exit if data cannot be loaded
+    sys.exit(1)
 except Exception as e:
     print(f"FATAL ERROR: Could not load or process training data: {e}")
     sys.exit(1)
@@ -69,14 +84,15 @@ except Exception as e:
 # Initialize OpenAI API Client
 # -----------------------------
 try:
+    # Load environment variables from .env file
     load_dotenv()
     openai_api_key = os.environ.get("OPENAI_API_KEY")
+    # Ensure the API key is found
     if not openai_api_key:
         raise ValueError("OPENAI_API_KEY not found in environment variables.")
+    # Create the OpenAI client instance
     client = OpenAI(api_key=openai_api_key)
     print("OpenAI client initialized.")
-    prev_id = None  # Tracks the first API response ID to enable stateful chaining
-
 except ValueError as e:
     print(f"FATAL ERROR: {e}")
     print("Please ensure your .env file exists and contains the OPENAI_API_KEY.")
@@ -86,155 +102,98 @@ except Exception as e:
     sys.exit(1)
 
 
-# def interpret_symptoms_with_t5(user_input, feature_list, tokenizer, model):
-#     """
-#         Interprets medical symptoms from a user input string using a T5 model. The function generates a
-#         comma-separated list of symptoms identified in the input text and matches these symptoms against
-#         a predefined feature list.
-#         """
-#     prompt = f"extract medical symptom keywords from the following text: \"{user_input}\"" # Experiment with prefixes like "find symptoms:" etc.
-#
-#     try:
-#         input_ids = tokenizer(prompt, return_tensors="pt", max_length=512, truncation=True).input_ids # Ensure truncation happens if needed
-#         outputs = model.generate(input_ids, max_length=100) # Adjust output length as needed
-#         decoded_output = tokenizer.decode(outputs[0], skip_special_tokens=True)
-#
-#         # Extract potential symptoms (e.g., split by comma, space, or newline depending on T5 output format)
-#         # Example: simple comma splitting, might need refinement
-#         potential_symptoms = [s.strip().lower() for s in decoded_output.split(',')] # Or better splitting logic
-#
-#         # 1. Find direct matches
-#         matched_symptoms = {symptom for symptom in potential_symptoms if
-#                             symptom in feature_list}  # Use a set for efficiency
-#         unmatched_potentials = [p for p in potential_symptoms if p not in matched_symptoms]
-#
-#         # 2. Try fuzzy matching *only* for terms that didn't match directly
-#         for potential in unmatched_potentials:
-#             match, score, _ = process.extractOne(potential, feature_list, scorer=fuzz.WRatio)
-#             if score > 80:  # Adjust threshold
-#                 # Add the matched feature if it wasn't already found directly
-#                 matched_symptoms.add(match)  # Add to the set
-#
-#         return list(matched_symptoms)  # Convert back to list
-#
-#     except Exception as e:
-#         print(f"Error during T5 symptom interpretation: {e}")
-#         return []
-
-
 # -----------------------------
 # Symptom Interpretation Function
 # -----------------------------
 def interpret_symptoms_with_gpt(user_input):
     """
-    Uses the Responses API to extract only known symptoms using conversation state,
-    then logs exactly which extracted tokens matched the feature list.
+    Uses OpenAI API (stateless call) to extract symptom keywords based on
+    globally defined instructions containing the valid feature list.
+    Assumes the API returns only valid, comma-separated symptoms.
     """
-    global prev_id
+    # The user's raw text is the primary input to the model
+    prompt = user_input
     try:
+        print("Interpreting symptoms via OpenAI API (using full list in instructions)...")
+        # Make the API call using the 'responses' endpoint
         response = client.responses.create(
-            model="gpt-4o-mini",
-            previous_response_id=prev_id,
-            input=user_input,
-            instructions = EXTRACTION_INSTRUCTIONS
+            model="gpt-4o-mini", # Specify the desired OpenAI model
+            input=prompt, # User's symptom description
+            instructions=EXTRACTION_INSTRUCTIONS # Pre-formatted instructions including feature list
         )
 
-        # Pull out the raw text
+        # Initialize extracted text
         extracted_text = ""
-        if (response.output
-            and response.output[0].content
-            and response.output[0].content[0].text):
+        # Safely access the nested text output from the response object
+        if (response.output and response.output[0].content and response.output[0].content[0].text):
             extracted_text = response.output[0].content[0].text.strip()
         else:
-            print("Warning: No output returned from GPT.")
-            return []
+            print("Warning: No output text returned from GPT for symptom interpretation.")
+            return [] # Return empty list if no text found
 
-        # DEBUG: what GPT actually gave you
-        print(f"\n[DEBUG] GPT raw extraction:\n{extracted_text}\n")
+        print(f"\n[DEBUG] GPT raw extraction (expected valid symptoms only):\n{extracted_text}\n")
 
-        # Split on commas – normalize underscores/spaces, lowercase
-        tokens = [
+        # Process the raw text: split by comma, normalize (lowercase, strip, replace underscore)
+        # Assumes the API followed instructions perfectly.
+        matched_symptoms = [
             tok.strip().lower().replace('_', ' ')
             for tok in extracted_text.split(',')
-            if tok.strip()
+            if tok.strip() # Ignore empty strings resulting from split
         ]
 
-        # Normalize feature list once
-        normalized_features = {
-            feat.strip().lower().replace('_', ' ')
-            for feat in feature_cols
-        }
-
-        # Partition extracted tokens into matched vs unmatched
-        matched = [tok for tok in tokens if tok in normalized_features]
-        unmatched = [tok for tok in tokens if tok not in normalized_features]
-
-        # Print explicit mapping
-        print(f"Matched {len(matched)} token(s): {matched}")
-        if unmatched:
-            print(f"Unmatched token(s) — not in feature list: {unmatched}")
-
-        return matched
+        return matched_symptoms
 
     except Exception as e:
+        # Catch any exceptions during the API call or processing
         print(f"Error extracting symptoms via GPT: {e}")
-        return []
-
-
+        import traceback
+        traceback.print_exc() # Print detailed error for debugging
+        return [] # Return empty list on error
 
 
 # -----------------------------
-# Treatment Recommendation Function (Using new API - client.responses.create)
+# Treatment Recommendation Function
 # -----------------------------
 def get_treatment_recommendation_gpt(disease_name):
     """
-    Uses GPT-4o mini via client.responses.create to generate a concise treatment recommendation.
-    Includes a disclaimer about not being professional medical advice.
-
-    Parameters:
-        disease_name (str): The name of the predicted disease.
-
-    Returns:
-        str: AI-generated treatment recommendation or an error message.
+    Uses OpenAI API (stateless call) to generate a concise treatment recommendation
+    for the given disease name. Includes a disclaimer.
     """
+    # Create a prompt asking for general treatment information for the specific disease
     prompt = (
         f"Provide a concise summary of typical management or treatment approaches for '{disease_name}'. "
         f"Focus on general information. Do not give specific medical advice."
     )
-    instructions_text = (
-        "You are a helpful assistant providing general information about medical conditions. "
-        "Summarize typical treatment approaches concisely. Start directly with the information. "
-        "IMPORTANT: Explicitly state that this information is not a substitute for professional medical advice."
-    )
-
     try:
         print(f"Getting treatment recommendation for '{disease_name}' via OpenAI API...")
+        # Make the stateless API call using the 'responses' endpoint
         response = client.responses.create(
-            model="gpt-4o-mini",
-            previous_response_id=prev_id,
-            input=prompt,
-            instructions=instructions_text,
-            max_output_tokens=250
+            model="gpt-4o-mini", # Specify the model
+            input=prompt, # The request for treatment info
+            instructions=TREATMENT_INSTRUCTIONS, # Specific instructions for this task
+            max_output_tokens=250 # Limit response length for conciseness
         )
 
-        # Extract text
-        if response.output and len(response.output) > 0 and \
-           response.output[0].content and len(response.output[0].content) > 0 and \
-           response.output[0].content[0].text:
-
-            recommendation = response.output[0].content[0].text
-            # Add disclaimer if not already included by the model (though prompt asks it to)
+        # Default message if extraction fails
+        recommendation = "Treatment information could not be generated."
+        # Safely extract the generated text
+        if (response.output and response.output[0].content and response.output[0].content[0].text):
+            recommendation = response.output[0].content[0].text.strip()
+            # Define the disclaimer text
             disclaimer = "Disclaimer: This is AI-generated information and NOT a substitute for professional medical advice. Consult a healthcare provider."
+            # Append disclaimer if the model didn't include it
             if "disclaimer" not in recommendation.lower() and "medical advice" not in recommendation.lower():
                  recommendation += f"\n\n{disclaimer}"
             print("API treatment recommendation received.")
-            return recommendation
         else:
+            # Handle cases where the API response structure is unexpected
             print("Warning: Could not extract treatment text from API response structure.")
             print(f"Full API Response Status: {response.status}")
-            return "Treatment information could not be generated."
+
+        return recommendation
 
     except Exception as e:
+        # Catch exceptions during the API call
         print(f"Error communicating with OpenAI API for treatment recommendation: {e}")
         return "Error generating treatment recommendation."
 
@@ -243,84 +202,72 @@ def get_treatment_recommendation_gpt(disease_name):
 # Symptom to Vector Function
 # -----------------------------
 def symptoms_to_vector(matched_symptoms, feature_list):
-    """Converts matched symptoms to a binary vector after normalizing both sides."""
-    normalized_input = [s.strip().lower().replace('_', ' ') for s in matched_symptoms]
-    normalized_features = [f.strip().lower().replace('_', ' ') for f in feature_list]
+    """
+    Converts a list of matched symptom strings into a binary numpy vector
+    based on the master feature_list order. Normalizes both lists for matching.
+    """
+    # Normalize the matched symptoms received (lowercase, strip, space for underscore)
+    normalized_input_set = {s.strip().lower().replace('_', ' ') for s in matched_symptoms}
 
+    # Initialize the binary vector with zeros
     input_vector = np.zeros(len(feature_list), dtype=int)
-    for i, feature in enumerate(normalized_features):
-        if feature in normalized_input:
+    # Iterate through the original feature list to maintain correct order
+    for i, feature in enumerate(feature_list):
+        # Normalize the feature from the master list for comparison
+        normalized_feature = feature.strip().lower().replace('_', ' ')
+        # If the normalized feature is in the set of matched symptoms, set vector position to 1
+        if normalized_feature in normalized_input_set:
             input_vector[i] = 1
     return input_vector
 
 # -----------------------------
 # PyTorch MLP Model Definition
 # -----------------------------
-# This class defines the structure of the Multi-Layer Perceptron (MLP)
-# used for classification. It must be identical to the MLPClassifier
-# class defined in model_training.py to allow loading the saved model state_dict.
+# Defines the MLP architecture; must match the structure used during training
+# to correctly load the saved weights (state_dict).
 class MLPClassifier(nn.Module):
     def __init__(self, input_dim, num_classes):
         super(MLPClassifier, self).__init__()
-        self.fc1 = nn.Linear(input_dim, 64)  # Hidden layer with 64 neurons
-        self.relu = nn.ReLU()  # Activation function
-        self.fc2 = nn.Linear(64, num_classes)  # Output layer for class logits
+        # Define layers: Input -> Hidden (64 neurons) -> ReLU -> Output
+        self.fc1 = nn.Linear(input_dim, 64)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(64, num_classes)
 
     def forward(self, x):
+        # Define the forward pass logic
         out = self.fc1(x)
         out = self.relu(out)
         out = self.fc2(out)
         return out
 
 
-def initialize_gpt_symptom_session(feature_list):
-    """
-    Sends the feature list once to the OpenAI responses API to start a stateful session.
-    Returns the response ID for chaining.
-    """
-    try:
-        features_str = ", ".join(feature_list)
-
-        response = client.responses.create(
-            model="gpt-4o-mini",
-            input="Session start.",
-            instructions=EXTRACTION_INSTRUCTIONS
-        )
-
-        return response.id
-
-    except Exception as e:
-        print(f"Error initializing GPT session: {e}")
-        sys.exit(1)
-
 # -----------------------------
 # Main prediction interface
 # -----------------------------
 def main():
-    """Main CLI loop for symptom input, prediction, and treatment recommendation."""
+    """
+    Main function to run the interactive Command Line Interface (CLI).
+    Handles model selection, loading, symptom input, interpretation,
+    prediction, treatment recommendation, and user interaction loop.
+    """
     print("\nWelcome to the Disease Prediction CLI!\n")
 
-    global prev_id
-    print("Initializing GPT conversation context with known symptom list...")
-    prev_id = initialize_gpt_symptom_session(feature_cols)
-    if not prev_id:
-        print("Failed to initialize conversation context.")
-        sys.exit(1)
-
-
     # --- Model Selection ---
+    # Prompt user to choose which trained model to use
     print("Available models: RF (Random Forest), LR (Logistic Regression), MLP (Neural Network)")
-    while True:
+    while True: # Loop until valid input is received
         choice = input("Enter the model you want to use (RF/LR/MLP): ").upper()
         if choice in ['RF', 'LR', 'MLP']:
-            break
+            break # Exit loop if choice is valid
         else:
             print("Invalid choice. Please enter RF, LR, or MLP.")
 
+    # Initialize variables for the selected model and its name
     selected_model = None
     model_name = ""
 
     # --- Model Loading ---
+    # Attempt to load the chosen model file
     try:
         print(f"Loading model '{choice}'...")
         if choice == 'RF':
@@ -332,14 +279,18 @@ def main():
         elif choice == 'MLP':
             model_name = "PyTorch MLP"
             try:
+                # Get necessary dimensions from loaded data info
                 input_dim = len(feature_cols)
                 num_classes = len(uniques)
+                # Instantiate the MLP class structure
                 mlp_model_instance = MLPClassifier(input_dim, num_classes)
-                # Load state dict - ensure model is on CPU if saved from GPU and running on CPU now, or vice versa
-                # Determine map_location based on current availability vs where it might have been saved
+                # Determine device (CPU/GPU) for loading
                 map_location = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+                # Load the saved weights (state dictionary) onto the determined device
                 mlp_model_instance.load_state_dict(torch.load(mlp_model_path, map_location=map_location))
+                # Set the model to evaluation mode (disables dropout, etc.)
                 mlp_model_instance.eval()
+                # Assign the loaded instance
                 selected_model = mlp_model_instance
                 print(f"{model_name} weights loaded successfully.")
             except FileNotFoundError:
@@ -349,116 +300,147 @@ def main():
                 print(f"Error loading PyTorch MLP model: {e}")
                 sys.exit(1)
 
+        # Confirm successful loading or handle MLP loading failure
         if selected_model:
             print(f"{model_name} model loaded successfully.")
-        # Add check if model failed to load (e.g., MLP case)
         elif choice == 'MLP' and not selected_model:
              print(f"Error: Failed to load {model_name}. Exiting.")
              sys.exit(1)
 
-
-    except FileNotFoundError:
-        print(f"Error: Model file for {choice} not found. Please ensure models are trained and saved.")
+    # Handle errors if model files are not found
+    except FileNotFoundError as e:
+        print(f"Error: Model file not found ({e}). Please ensure models are trained and saved.")
         sys.exit(1)
+    # Catch any other unexpected errors during loading
     except Exception as e:
         print(f"An unexpected error occurred loading the model: {e}")
         sys.exit(1)
 
     # --- Main Prediction Loop ---
+    # Loop to allow multiple symptom inputs per session
     while True:
         print("\nPlease describe your symptoms in detail (or type 'quit' to exit).")
         user_input = input("Enter your symptoms: ")
+        # Allow user to quit
         if user_input.lower() == 'quit':
              break
 
-        # 1. Interpret Symptoms
+        # 1. Interpret Symptoms using OpenAI API
         matched_symptoms = interpret_symptoms_with_gpt(user_input)
 
+        # If no valid symptoms are returned by the API, prompt again
         if not matched_symptoms:
-            print("Could not interpret valid symptoms from input. Please try again or rephrase.")
-            continue # Ask for input again
+            print("Could not interpret valid symptoms from input. Please check API response or try again.")
+            continue # Go to the next iteration of the loop
         else:
-            print(f"\nInterpreted symptoms: {', '.join(matched_symptoms)}")
+            # If symptoms are found, proceed with prediction
+            print(f"\nInterpreted symptoms (from API): {', '.join(matched_symptoms)}")
 
-            # 2. Convert to Vector
+            # 2. Convert matched symptoms to a binary feature vector
             input_vector = symptoms_to_vector(matched_symptoms, feature_cols).reshape(1, -1)
 
-            # DEBUG: show exactly which features went into the model
+            # --- DEBUG BLOCKS ---
+            # Display which features are active in the vector
             active_idxs = [i for i, bit in enumerate(input_vector[0]) if bit == 1]
             print(f"[DEBUG] Active feature indices: {active_idxs}")
             print(f"[DEBUG] Active feature names: {[feature_cols[i] for i in active_idxs]}\n")
 
-            input_df = pd.DataFrame(input_vector, columns=feature_cols)  # For sklearn models
+            # Display top 5 likely diseases for RF/LR models if possible
+            if choice in ['RF', 'LR']:
+                 if hasattr(selected_model, "predict_proba"): # Check if model supports probabilities
+                     try:
+                         # Create DataFrame temporarily for predict_proba input
+                         input_df_debug = pd.DataFrame(input_vector, columns=feature_cols)
+                         # Get probabilities for all classes
+                         probs = selected_model.predict_proba(input_df_debug)[0]
+                         # Get indices of top 5 probabilities
+                         top5 = np.argsort(probs)[-5:][::-1]
+                         print("Top 5 candidate diseases (Probabilities):")
+                         for idx in top5:
+                              if idx < len(uniques): # Check index bounds
+                                  print(f"  {uniques[idx]} ({probs[idx] * 100:.1f} %)")
+                              else:
+                                  print(f"  Invalid index {idx}")
+                         print("-" * 20) # Separator
+                     except Exception as e:
+                         print(f"[DEBUG] Could not get probabilities: {e}")
+                 else:
+                     print(f"[DEBUG] {model_name} model does not have predict_proba method.")
+            # --- END DEBUG ---
 
-            # DEBUG: Show top 5 candidate diseases
-            probs = selected_model.predict_proba(input_df)[0]
-            top5 = np.argsort(probs)[-5:][::-1]
-            print("Top 5 candidate diseases:")
-            for idx in top5:
-                print(f"  {uniques[idx]} ({probs[idx] * 100:.1f} %)")
-
-
-
-            # 3. Predict Disease
+            # 3. Predict Disease using the loaded model
             predicted_label = None
             predicted_disease = None
             try:
+                # Use .predict() for scikit-learn models
                 if choice in ['RF', 'LR']:
                     if selected_model:
+                        # Create DataFrame required for sklearn predict input
+                        input_df = pd.DataFrame(input_vector, columns=feature_cols)
                         predicted_label = selected_model.predict(input_df)[0]
                     else:
                         print(f"Error: {model_name} model not loaded.")
+                # Use forward pass for PyTorch MLP model
                 elif choice == 'MLP':
                     if selected_model:
-                         # Determine device for inference
-                        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-                        selected_model.to(device) # Ensure model is on the correct device
-                        input_tensor = torch.tensor(input_vector.astype(np.float32)).float().to(device)
-                        with torch.no_grad():
-                            outputs = selected_model(input_tensor)
-                            _, predicted = torch.max(outputs.data, 1)
-                            predicted_label = predicted.item()
+                         # Determine device (CPU/GPU)
+                         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+                         # Ensure model is on the correct device
+                         selected_model.to(device)
+                         # Convert input vector to tensor and move to device
+                         input_tensor = torch.tensor(input_vector.astype(np.float32)).float().to(device)
+                         # Perform inference without calculating gradients
+                         with torch.no_grad():
+                             outputs = selected_model(input_tensor)
+                             # Get the index of the highest probability class
+                             _, predicted = torch.max(outputs.data, 1)
+                             predicted_label = predicted.item()
                     else:
                         print("Error: MLP model not loaded.")
 
             except Exception as e:
+                # Catch errors during the prediction step
                 print(f"Error during model prediction: {e}")
                 predicted_label = None
 
-            # 4. Get Disease Name
+            # 4. Get Disease Name string from the predicted integer label
             if predicted_label is not None:
                 try:
+                    # Map integer label back to disease name using the 'uniques' array
                     predicted_disease = uniques[predicted_label]
                 except IndexError:
-                    print(f"Error: Predicted label {predicted_label} is out of bounds.")
+                    # Handle cases where the predicted label is out of bounds
+                    print(f"Error: Predicted label {predicted_label} is out of bounds for known classes ({len(uniques)}).")
                     predicted_disease = None
             else:
+                 # If prediction failed, disease name is None
                  predicted_disease = None
 
-            # 5. Get Treatment Recommendation (if disease predicted)
-            treatment_recommendation = "N/A" # Default
-            if predicted_disease:
+            # 5. Get Treatment Recommendation via OpenAI API (only if disease was predicted)
+            treatment_recommendation = "N/A" # Default value
+            if predicted_disease: # Check if prediction was successful
                  treatment_recommendation = get_treatment_recommendation_gpt(predicted_disease)
 
-
-            # 6. Display Results
+            # 6. Display Results to the user
             print("\n--- Prediction Results ---")
             print(f"Model Used: {model_name}")
-            if predicted_disease:
+            if predicted_disease: # Check if prediction and name lookup succeeded
                 print(f"Predicted Disease: {predicted_disease}")
                 print(f"Recommended Treatment Info:\n{treatment_recommendation}")
             else:
-                print("Could not predict disease based on input.")
+                # Message if prediction failed or label was invalid
+                print("Could not predict disease based on input or prediction error occurred.")
             print("--------------------------")
 
-        # Ask if user wants to enter another set of symptoms
+        # Ask user if they want to perform another prediction
         again = input("\nWould you like to enter another set of symptoms? (yes/no): ").strip().lower()
         if again not in ["yes", "y"]:
-            # print("Thank you for using the Disease Prediction CLI. Stay healthy!")
-            break # Exit the inner loop
+            break # Exit the loop if answer is not yes/y
 
+    # Final message when exiting the loop
     print("\nThank you for using the Disease Prediction CLI. Stay healthy!")
 
 
+# Standard Python entry point
 if __name__ == "__main__":
     main()
