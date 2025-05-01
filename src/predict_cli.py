@@ -132,7 +132,7 @@ def interpret_symptoms_with_gpt(user_input):
         )
 
         # NEW: print raw response for debug
-        print(f"[DEBUG] Full raw response:\n{response}")
+        # print(f"[DEBUG] Full raw response:\n{response}")
         # Initialize extracted text
         extracted_text = ""
         # Safely access the nested text output from the response object
@@ -142,7 +142,7 @@ def interpret_symptoms_with_gpt(user_input):
             print("Warning: No output text returned from GPT for symptom interpretation.")
             return [] # Return empty list if no text found
 
-        print(f"\n[DEBUG] GPT raw extraction (expected valid symptoms only):\n{extracted_text}\n")
+        # print(f"\n[DEBUG] GPT raw extraction (expected valid symptoms only):\n{extracted_text}\n")
 
         # Process the raw text: split by comma, normalize (lowercase, strip, replace underscore)
         # Assumes the API followed instructions perfectly.
@@ -359,8 +359,8 @@ def main():
             # --- DEBUG BLOCKS ---
             # Display which features are active in the vector
             active_idxs = [i for i, bit in enumerate(input_vector[0]) if bit == 1]
-            print(f"[DEBUG] Active feature indices: {active_idxs}")
-            print(f"[DEBUG] Active feature names: {[feature_cols[i] for i in active_idxs]}\n")
+            #print(f"[DEBUG] Active feature indices: {active_idxs}")
+            #print(f"[DEBUG] Active feature names: {[feature_cols[i] for i in active_idxs]}\n")
 
             # Display top 5 likely diseases for RF/LR models if possible
             if choice in ['RF', 'LR']:
