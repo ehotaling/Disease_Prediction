@@ -41,18 +41,17 @@ Disease_Prediction/
 │   ├── f1_score_comparison.png
 │   ├── recall_comparison.png
 │   ├── precision_comparison.png
-│   ├── feature_scores_chi2.csv
-│   ├── feature_scores_mi.csv
-│   ├── feature_scores_rf.csv
-│   ├── feature_scores_rfe.csv
-│   ├── feature_scores_merged.csv
-│   ├── top_features_chi2.png
-│   ├── top_features_mi.png
-│   ├── top_features_rf.png
-│   ├── top_features_rfe.png
-│   └── top_features_merged.png
-│   
-│   
+│   ├── feature_scores_chi2.csv    # Feature scores from Chi-Squared test
+│   ├── feature_scores_mi.csv      # Feature scores from Mutual Information
+│   ├── feature_scores_rf.csv      # Feature scores from Random Forest Importance
+│   ├── feature_scores_rfe.csv     # Feature rankings from RFE
+│   ├── feature_scores_merged.csv  # Merged and normalized feature scores/rankings
+│   ├── top_features_chi2.png      # Plot of top features (Chi2)
+│   ├── top_features_mi.png        # Plot of top features (MI)
+│   ├── top_features_rf.png        # Plot of top features (RF Importance)
+│   ├── top_features_rfe.png       # Plot of top features (RFE Rank)
+│   └── top_features_merged.png    # Plot of top features (Merged Score)
+│     
 ├── src/                     # Python scripts (all core logic lives here)
 │   ├── data_utils.py
 │   ├── clean_data.py
