@@ -32,7 +32,8 @@ Disease_Prediction/
 ├── models/                  # Stores pre-trained models
 │   ├── rf_model.pkl
 │   ├── lr_model.pkl
-│   └── mlp_model.pth
+│   ├── mlp_model.pth
+│   └── label_mapping.npy  # Maps predicted labels to disease names
 ├── results/                # Stores generated plots and comparison tables
 │   ├── model_comparison.csv
 │   ├── model_comparison_table.png
@@ -146,7 +147,7 @@ Here is the recommended order for running the scripts:
 1. **clean_data.py** *(optional for EDA)*
    
    Run this to explore the dataset and confirm that your files are formatted and cleaned properly.
-
+    *(Note: Requires updating for the new dataset structure/features)*
    ```bash
    python src/clean_data.py
    ```
@@ -158,10 +159,10 @@ Here is the recommended order for running the scripts:
    ```
 
    Identifies the most predictive symptoms using:
-
+    
    - Chi-Squared Scores
    - Random Forest Feature Importances
-
+    *(Note: Requires updating for the new dataset features)*
 
 3. **model_training.py**
 
@@ -170,7 +171,8 @@ Here is the recommended order for running the scripts:
    - Logistic Regression
    - Random Forest
    - MLP using PyTorch
-
+   - Uses a train/validation/test split (64%/16%/20%)
+   - Implements early stopping for MLP based on validation accuracy
    Automatically saves the trained models (`rf_model.pkl`, `lr_model.pkl`, `mlp_model.pth`) in the `models/` directory.
 
    ```bash
@@ -296,8 +298,7 @@ Work completed since the midpoint presentation includes:
     - Successfully executed the refactored `model_training.py` pipeline on the full (filtered) new dataset.
     - Trained LR, RF, and MLP models, achieving baseline accuracies in the mid-80s.
     - Generated and saved model comparison metrics (CSV table, markdown table) and visualization plots (matplotlib table, bar charts) to a new `results/` directory.
-- **Planned Architecture Change:** Decided to switch from static treatment lookup to dynamic generation via OpenAI API (to be implemented in `predict_cli.py`). Relevant Readme sections updated to reflect this plan.
-
+- **Dynamic Treatment Generation:** Implemented OpenAI API call (`client.responses.create`) within `predict_cli.py` to dynamically generate treatment recommendations based on the predicted disease, replacing the previous static lookup method. Includes necessary disclaimers. 
 ---
 
 ## To-Do List (Prioritized)
@@ -386,9 +387,10 @@ Work completed since the midpoint presentation includes:
 - **Treatment Generation:** The planned dynamic treatment generation via OpenAI API needs careful implementation and validation due to the sensitive nature of medical advice, and will carry strong disclaimers.
 
 ### B. Monitoring Overfitting
-- Unlike the previous idealized dataset which yielded 100% test accuracy with no signs of overfitting, the current models train on a complex dataset where overfitting is a potential concern.
-- Current evaluation is based on a single train-test split. While the test performance (~83-87%) doesn't immediately suggest *severe* overfitting occurred within the tested 20 epochs for the MLP, rigorous monitoring was not implemented.
-- Future work (Task #6/#7) should incorporate validation sets and monitoring during training (e.g., plotting training vs. validation loss/accuracy) to detect overfitting and potentially implement techniques like early stopping or regularization.
+- Unlike the previous idealized dataset... overfitting is a potential concern.
+- The current `model_training.py` script now uses a **train/validation/test split**.
+- **Early stopping based on validation accuracy** is implemented for the PyTorch MLP to mitigate overfitting during its training.
+- Evaluation on the final test set provides an estimate of generalization, but further analysis (like k-fold cross-validation - Task #6) could provide more robust estimates. Current test performance (~83-87%) doesn't show signs of *severe* overfitting.
 
 ### C. Future Work
 - **Test on Real-World Data:** Evaluate the pipeline using real clinical datasets (if available) to assess true performance.
