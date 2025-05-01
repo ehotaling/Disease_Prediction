@@ -154,31 +154,56 @@ OPENAI_API_KEY=your_openai_api_key_here
 
 Here is the recommended order for running the scripts:
 
-1. **clean_data.py** *(optional for EDA)*
+### 1. **clean_data.py** *(optional for EDA)*
    
    Run this to explore the dataset and confirm that your files are formatted and cleaned properly.
     
    ```bash
    python src/clean_data.py
    ```
+Performs Exploratory Data Analysis (EDA) on the cleaned training data. It loads the data (using data_utils.py), 
+confirms its dimensions (approx. 247k rows, 377 features, 773 classes), analyzes the distribution of disease classes 
+and symptom frequencies, and generates plots visualizing these distributions.
 
-2. **feature_selection.py** *(optional)*
+#### Analysis Insights
 
-   ```bash
-   python src/feature_selection.py
-   ```
+- The EDA confirms the dataset's scale and the number of unique diseases.
 
-    Identifies influential features using multiple methods:
-    
-   - Chi-Squared Test
-   - Mutual Information
-   - Random Forest Importance (Gini)
-   - Recursive Feature Elimination (RFE) with Decision Tree estimator
-   
-   Generates a merged ranking based on normalized scores.
+- Symptom frequency analysis shows that common symptoms like various pains (sharp abdominal pain, sharp chest pain, back pain), vomiting, headache, cough, and fever are the most reported across the dataset.
+- Disease distribution plots (showing the top N classes) visualize the most frequent conditions but also implicitly highlight the class imbalance challenge (long tail) present in the full dataset.
+- Plots are generated (and optionally saved to results/) for the top N disease distributions and symptom frequencies.
+
+
+### 2. `feature_selection.py` *(optional)*
+
+```bash
+python src/feature_selection.py
+```
+
+Identifies influential features (symptoms) using multiple methods:  
+Chi-Squared Test, Mutual Information, Random Forest Importance (Gini), and Recursive Feature Elimination (RFE) with a Decision Tree estimator.  
+It generates a **merged ranking** based on normalized scores/ranks from these methods.  
+Individual scores/rankings (`.csv`) and plots (`.png`) visualizing the top features for each method and the merged result are saved to the `results/` directory.
+
+#### Analysis Insights
+
+- Different methods highlight different aspects:  
+  **Chi-Squared** often selects highly specific symptoms with strong statistical association  
+  *(e.g., wrist weakness, vaginal dryness)*,  
+  while **Mutual Information** and **Random Forest** show significant overlap, prioritizing common yet highly informative symptoms crucial for model discrimination  
+  *(e.g., headache, cough, nausea, vomiting, fever, various pains)*.  
+  **RFE** provides a model-dependent iterative ranking.
+
+- The **Merged Score** represents a consensus, favoring symptoms ranked well across multiple methods.  
+  Consequently, the top merged features are dominated by the common symptoms identified by MI and RF  
+  *(e.g., headache, cough, nausea)*,  
+  suggesting these are the most robustly important features for classification based on this analysis pipeline.
+
+- The generated plots provide visual confirmation of these trends.
+
    Saves individual scores/rankings and plots to the `results/` directory.
 
-3. **model_training.py**
+### 3. **model_training.py**
 
    Trains 3 classifiers:
 
@@ -193,7 +218,7 @@ Here is the recommended order for running the scripts:
    python src/model_training.py
    ```
 
-4. **predict_cli.py**
+### 4. **predict_cli.py**
 
    Interactive command-line interface for real-time symptom prediction:
 
@@ -403,7 +428,7 @@ Work completed since the midpoint presentation includes:
 - **Treatment Generation:** The planned dynamic treatment generation via OpenAI API needs careful implementation and validation due to the sensitive nature of medical advice, and will carry strong disclaimers.
 
 ### B. Monitoring Overfitting
-- Unlike the previous idealized dataset... overfitting is a potential concern.
+- Unlike the previous idealized dataset which yielded 100% test accuracy with no signs of overfitting, the current models train on a complex dataset where overfitting is a potential concern.
 - The current `model_training.py` script now uses a **train/validation/test split**.
 - **Early stopping based on validation accuracy** is implemented for the PyTorch MLP to mitigate overfitting during its training.
 - Evaluation on the final test set provides an estimate of generalization, but further analysis (like k-fold cross-validation - Task #6) could provide more robust estimates. Current test performance (~83-87%) doesn't show signs of *severe* overfitting.
