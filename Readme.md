@@ -14,7 +14,9 @@ likely disease given a set of symptoms and return a recommended treatment, dynam
 As of the latest update, the CLI leverages GPT-4o mini for interpreting user-described symptoms using natural
 language. This improves user interaction and expands flexibility in symptom input. This project is part of a data
 mining learning initiative and includes Python scripts for data cleaning, feature selection, model training,
-and prediction via a CLI interface.
+and prediction via a CLI interface. This project is part of a data mining learning initiative and includes Python 
+scripts for data cleaning, exploratory data visualization (e.g., using t-SNE to understand class separability), 
+feature selection, model training, and prediction via a CLI interface.
 
 ---
 
@@ -50,14 +52,17 @@ Disease_Prediction/
 │   ├── top_features_mi.png        # Plot of top features (MI)
 │   ├── top_features_rf.png        # Plot of top features (RF Importance)
 │   ├── top_features_rfe.png       # Plot of top features (RFE Rank)
-│   └── top_features_merged.png    # Plot of top features (Merged Score)
-│     
+│   ├── top_features_merged.png    # Plot of top features (Merged Score)
+│   ├── tsne_coordinates_top_N_classes.csv # t-SNE coordinates for top N classes
+│   ├── tsne_visualization_top_N_classes.png # t-SNE plot for top N classes 
+│   └── important_training_summary.log # Log file from model_training.py
 ├── src/                     # Python scripts (all core logic lives here)
 │   ├── data_utils.py        # Utility functions for loading and basic cleaning (normalization, renaming) of data. Used by other scripts.
 │   ├── clean_data.py        # Performs EDA (distribution analysis, plotting) on cleaned data.
 │   ├── feature_selection.py # Calculates and compares feature importance using various methods.
 │   ├── model_training.py    # Trains, evaluates, and saves the classification models.
-│   └── predict_cli.py       # Core prediction and API interaction logic
+│   ├── predict_cli.py       # Core prediction and API interaction logic
+│   └── TSNE.py              # Script for t-SNE visualization of symptom classes 
 ├── .env                     # Environment variables for API keys
 ├── .env.example             # Template for required environment variables
 ├── README.md
@@ -125,7 +130,7 @@ All `requirements-*.txt` files pin NumPy to `<2.0.0` for stability and compatibi
 
 **Example error (macOS ARM):**
 
-A module that was compiled using NumPy 1.x cannot be run in NumPy 2.0.2...
+A module compiled using NumPy 1.x cannot be run in NumPy 2.0.2...
 
 
 **Temporary Fix:**
@@ -149,6 +154,8 @@ OPENAI_API_KEY=your_openai_api_key_here
 
 ---
 
+
+
 ##  Order of Execution
 
 Here is the recommended order for running the scripts:
@@ -160,7 +167,7 @@ Here is the recommended order for running the scripts:
    ```bash
    python src/clean_data.py
    ```
-Performs Exploratory Data Analysis (EDA) on the training data. It utilizes data_utils.py for initial loading and basic 
+Performs Exploratory Data Analysis (EDA) on the training data. It uses data_utils.py for initial loading and basic 
 cleaning (like target column normalization and renaming). It then confirms dataset dimensions (approx. 247k rows, 377 
 features, 773 classes), analyzes the distribution of disease classes and symptom frequencies, and generates plots 
 visualizing these distributions.
@@ -174,7 +181,93 @@ visualizing these distributions.
 - Plots are generated (and optionally saved to results/) for the top N disease distributions and symptom frequencies.
 
 
-### 2. `feature_selection.py` *(optional)*
+### 2. **TSNE.py** *(optional for Visualization)*
+   
+   Run this script to visualize the high-dimensional symptom data in a lower-dimensional space (2D) using t-SNE. This can help in understanding the separability and clustering of disease classes based on their symptoms.
+    
+   ```bash
+   python src/TSNE.py
+   ```
+Loads the cleaned data using `data_utils.py`, filters out very rare classes, and then selects the top N most frequent classes (configurable via `N_TOP_CLASSES`, e.g., 10 in the provided run). By default (`DO_SAMPLING = False`), it uses all samples from these top N classes. It then applies the t-SNE algorithm to reduce the dimensionality of the symptom features to two components.
+The script generates and saves two key outputs in the `RESULTS_DIR`:
+1.  A CSV file containing the 2D t-SNE coordinates and their corresponding class labels (e.g., `tsne_coordinates_top_10_classes.csv`).
+2.  A scatter plot visualizing these 2D embeddings, where each point represents a sample colored by its disease class (e.g., `tsne_visualization_top_10_classes.png`). This plot is also displayed after generation.
+Textual output includes the calculated class centroids in the t-SNE space.
+
+Key configurations in TSNE.py:
+
+    TRAINING_DATA_PATH: Path to the training data.
+    RESULTS_DIR: Directory to save the plot and coordinate data.
+    DO_SAMPLING: Boolean to enable/disable sampling (default False in the analyzed run).
+    SAMPLE_SIZE: Number of samples if DO_SAMPLING is True (default 5000, but not used in the analyzed run).
+    MIN_SAMPLES_PER_CLASS: Minimum samples per class to keep (default 3).
+    N_TOP_CLASSES: Number of most frequent classes to visualize (default 10 in the analyzed run).
+    TSNE_PERPLEXITY, TSNE_N_ITER, TSNE_LEARNING_RATE: t-SNE algorithm parameters (e.g., 30, 1000, 200 respectively in the analyzed run).
+    LOKY_MAX_CPU_COUNT: Sets the maximum number of CPU cores for parallel processing by underlying libraries like 
+        scikit-learn (which uses Loky as a backend for joblib). This is configured at the beginning of the script 
+        (e.g., "8" in the analyzed run) and can influence the speed of computations like t-SNE when `n_jobs=-1` 
+        is used. Adjust this based on your system's capabilities.
+
+
+
+
+#### Analysis Insights (from a run with N_TOP_CLASSES=10, using full data for these classes)
+The TSNE.py script was executed with N_TOP_CLASSES=10, using all 12,163 samples from the top 10 most frequent disease 
+classes (no sampling). The t-SNE algorithm was applied to reduce 377 binary symptom features into two dimensions for visualization.
+    
+Summary of Key Parameters:
+
+    Perplexity: 30
+
+    Iterations: 1000
+
+    Learning Rate: 200
+
+    Execution Time: ~14.85 seconds
+
+    Classes Visualized:
+
+        cystitis
+
+        vulvodynia
+
+        nose disorder
+
+        complex regional pain syndrome
+
+        spondylosis
+
+        esophagitis
+
+        hypoglycemia
+
+        vaginal cyst
+
+        conjunctivitis due to allergy
+
+        peripheral nerve disorder
+
+Visualization Findings:
+
+    The resulting plot (see: tsne_visualization_top_10_classes.png) shows clearly separated clusters for each of the top 10 diseases, indicating strong class separability in symptom space, at least for these high-frequency classes.
+
+    Minimal overlap is seen between most clusters. Exceptions like "complex regional pain syndrome" and "spondylosis" show slight boundary proximity, suggesting potential symptom similarity or overlap.
+
+    Compact, well-defined clusters (e.g., for "cystitis", "esophagitis", "hypoglycemia") suggest the models are likely to perform well on these classes due to consistent symptom patterns.
+
+    Centroid coordinates in 2D t-SNE space were printed and saved for each class, confirming tight grouping (see results CSV)
+
+
+Output Files:
+
+    results/tsne_coordinates_top_10_classes.csv: Full t-SNE embeddings with encoded class labels
+    results/tsne_visualization_top_10_classes.png: Scatter plot of the t-SNE projection
+
+This visualization validates that the most common disease classes are well-separated in the feature space, 
+at least after dimensionality reduction. This supports the feasibility of using supervised models for disease classification
+and provides intuitive support for why the top 10 classes perform better than rarer ones.
+
+### 3. `feature_selection.py` *(optional)*
 
 ```bash
 python src/feature_selection.py
@@ -204,7 +297,7 @@ the results/ directory.
 
    Saves individual scores/rankings and plots to the `results/` directory.
 
-### 3. **model_training.py**
+### 4. **model_training.py**
 
 Loads the cleaned data using data_utils.py, filters out very rare classes (< 3 samples, resulting in 748 classes used for training), 
 and then trains 3 classifiers: Logistic Regression, Random Forest, and MLP using PyTorch. It uses a train/validation/test split 
@@ -226,9 +319,9 @@ Trained models (rf_model.pkl, lr_model.pkl, mlp_model.pth) and the label mapping
 - **Comparison:** While Logistic Regression achieves the highest raw accuracy, its lower Macro F1 score suggests potential bias towards more frequent classes. Random Forest and the PyTorch MLP show more balanced performance across all classes (higher Macro F1), indicating better generalization on this imbalanced dataset. The MLP slightly edges out RF in Macro F1.
   - These results establish a solid performance baseline (accuracies ~84-86%, Macro F1 ~78-84%) for the project.
 
-### 4. **predict_cli.py**
+### 5. **predict_cli.py**
 
-   Loads necessary components (trained models, label mapping, feature list derived from data loaded via data_utils.py) and provides an interactive command-line interface for real-time symptom prediction:
+   Loads the necessary components (trained models, label mapping, feature list derived from data loaded via data_utils.py) and provides an interactive command-line interface for real-time symptom prediction:
 
    - Accepts user input (natural language symptoms).
    - Interprets symptoms using GPT-4o mini via OpenAI API.
