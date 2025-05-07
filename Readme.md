@@ -439,57 +439,52 @@ Work completed since the midpoint presentation includes:
     - Generated and saved model comparison metrics (CSV table, markdown table) and visualization plots (matplotlib table, bar charts) to a new `results/` directory.
 - **Dynamic Treatment Generation:** Implemented OpenAI API call (`client.responses.create`) within `predict_cli.py` to dynamically generate treatment recommendations based on the predicted disease, replacing the previous static lookup method. Includes necessary disclaimers. 
 - **Expanded Feature Selection:** Refactored `feature_selection.py` for the new dataset; added Mutual Information and RFE methods; implemented score normalization and merged ranking; added saving of scores and plots.
+- **Data Visualization (t-SNE):** Implemented `TSNE.py` script to visualize high-dimensional symptom data in 2D, focusing on the top N most frequent classes. Generated and analyzed plots showing class separability for these common diseases, with outputs saved to `results/`. (See "TSNE.py" section in "Order of Execution" for detailed analysis).
 
 ---
 
 ## To-Do List (Prioritized)
 
-1. **Integrate T5 Model for Symptom Extraction**  
-   Priority: Top
-   - Status: Completed Evaluation. Decision made to defer T5 integration due to performance limitations compared to the GPT-4o baseline. See "Evaluation of Local T5 Model" section below for details.
+1.  **Integrate T5 Model for Symptom Extraction**
+    Priority: Top
+    - Status: Completed Evaluation. Decision made to defer T5 integration due to performance limitations compared to the GPT-4o baseline. See "Evaluation of Local T5 Model" section below for details.
 
-2. **Refactor CLI to Support Model Choice**  
-   Priority: High
-   - Status: **Completed.** CLI now prompts user to select RF, LR, or MLP model at runtime.
+2.  **Refactor CLI to Support Model Choice**
+    Priority: High
+    - Status: **Completed.** CLI now prompts user to select RF, LR, or MLP model at runtime.
 
-3. **Persist All Models**  
-   Priority: High  
-   - Status: **Completed.** `model_training.py` now saves LR (`lr_model.pkl`) and MLP (`mlp_model.pth`) alongside RF model.
+3.  **Persist All Models**
+    Priority: High
+    - Status: **Completed.** `model_training.py` now saves LR (`lr_model.pkl`) and MLP (`mlp_model.pth`) alongside RF model.
 
-4. **Implement PyTorch Model Loader for CLI**  
-   Priority: High  
-   - Status: **Completed.** `predict_cli.py` now correctly loads the saved MLP model (`mlp_model.pth`) and uses it for prediction when selected.
+4.  **Implement PyTorch Model Loader for CLI**
+    Priority: High
+    - Status: **Completed.** `predict_cli.py` now correctly loads the saved MLP model (`mlp_model.pth`) and uses it for prediction when selected.
 
-5. **Expand Feature Selection**  
-   Priority: Medium  
-   - Status: **Completed.** Added Mutual Information, RFE; implemented merged ranking. Results saved to `results/`.
-   
+5.  **Expand Feature Selection**
+    Priority: Medium
+    - Status: **Completed.** Added Mutual Information, RFE; implemented merged ranking. Results saved to `results/`.
 
-6. **Improve Model Training**  
-   Priority: Medium  
-   - Apply k-fold cross-validation  
-   - Tune hyperparameters for each model (e.g., grid search or random search)
+6.  **Implement t-SNE Visualization for Class Separability**
+    Priority: Medium
+    - Status: **Completed.** `TSNE.py` script developed to visualize top N classes in 2D. Plot and coordinates saved to `results/`. Analysis insights documented.
 
-7. **Enhance Evaluation**  
-   Priority: Low  
-   - Add confusion matrices, ROC curves, top-k (e.g., top-3) predictions  
-   - Conduct per-class analysis to assess where models perform differently
+7.  **Improve Model Training**
+    Priority: Medium
+    - Apply k-fold cross-validation
+    - Tune hyperparameters for each model (e.g., grid search or random search)
 
-8. **Finalize Presentation Visuals**  
-   Priority: High  
-   - Add system architecture diagrams  
-   - Add saved feature plots and model comparison visuals  
-   - Add CLI flowchart
+8.  **Enhance Evaluation**
+    Priority: Low
+    - Add confusion matrices, ROC curves, top-k (e.g., top-3) predictions
+    - Conduct per-class analysis to assess where models perform differently
 
-9. **Polish Final Presentation**  
-   Priority: High  
-   - Improve "Since Last Time" slide  
-   - Streamline walkthrough and structure of final deck  
-   - Ensure CLI demo is clear and illustrative
+9.  **Finalize Presentation Visuals**
+    Priority: High
+    - Status: **Completed.** System architecture diagrams added
+    - Status: **Completed.** Added saved feature plots, t-SNE plot, and model comparison visuals
+    - Status: **Completed.** Added CLI flowchart
 
-10. **Create Limitations and Future Work Section**  
-    Priority: Top  
-    - Explicitly address dataset limitations and discuss realistic future extensions
 
 ---
 
