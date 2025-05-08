@@ -155,11 +155,11 @@ np.save(label_map_path, uniques)
 print(f"Label mapping saved to {label_map_path}")
 file_logger.info("Label mapping saved to: %s", label_map_path) # Add for file log
 
-
 # Split the filtered data
 print("Splitting data into train/val/test sets...")
 
 # First, split off the test set (20%)
+# X is a DataFrame, so X_test_data will also be a DataFrame
 X_temp, X_test, y_temp, y_test_encoded = train_test_split(
     X, y_encoded, test_size=0.2, random_state=42, stratify=y_encoded
 )
@@ -172,8 +172,24 @@ X_train, X_val, y_train_encoded, y_val_encoded = train_test_split(
 print(f"Training set size:     {X_train.shape[0]} samples")
 print(f"Validation set size:   {X_val.shape[0]} samples")
 print(f"Test set size:         {X_test.shape[0]} samples")
-file_logger.info("Data split sizes - Train: %d, Validation: %d, Test: %d", X_train.shape[0], X_val.shape[0], X_test.shape[0]) # Add summary to file log
+file_logger.info("Data split sizes - Train: %d, Validation: %d, Test: %d", X_train.shape[0], X_val.shape[0], X_test.shape[0])
 
+# Save the test set for generate_official_curves.py
+print("\nSaving official test set data for external curve generation...")
+try:
+    # X_test_data is already a pandas DataFrame with column names from X
+    x_test_save_path = os.path.join(results_dir, "X_test_data.csv")
+    y_test_save_path = os.path.join(results_dir, "y_test_encoded.npy")
+
+    X_test.to_csv(x_test_save_path, index=False) # Directly save the DataFrame
+    np.save(y_test_save_path, y_test_encoded)
+
+    print(f"Official X_test data saved to: {x_test_save_path}")
+    print(f"Official y_test_encoded data saved to: {y_test_save_path}")
+    file_logger.info("Official test set (X_test_data.csv, y_test_encoded.npy) saved to: %s", results_dir)
+except Exception as e:
+    print(f"Error saving test set data: {e}")
+    file_logger.error("Error saving test set data: %s", e)
 
 # -----------------------------
 # Model 1: Logistic Regression (scikit-learn)
@@ -242,7 +258,7 @@ train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
 train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True) # Increased batch_size
 
 
-# Define a simple MLP model with one hidden layer
+# A simple MLP model with one hidden layer
 class MLPClassifier(nn.Module):
     def __init__(self, input_dim, num_classes):
         super(MLPClassifier, self).__init__()

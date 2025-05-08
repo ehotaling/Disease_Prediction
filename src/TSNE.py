@@ -194,7 +194,7 @@ try:
 
     plt.tight_layout(rect=[0, 0, 0.85, 1])
 
-    plot_filename = f"tsne_visualization_top_{N_TOP_CLASSES}_classes.png"  # Make filename more specific
+    plot_filename = f"tsne_visualization_top_{N_TOP_CLASSES}_classes.png"
     plot_path = os.path.join(RESULTS_DIR, plot_filename)
     plt.savefig(plot_path, bbox_inches='tight', dpi=150)
     print(f"t-SNE plot for top {N_TOP_CLASSES} classes saved to: {plot_path}")
