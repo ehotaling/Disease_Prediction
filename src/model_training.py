@@ -174,8 +174,8 @@ print(f"Validation set size:   {X_val.shape[0]} samples")
 print(f"Test set size:         {X_test.shape[0]} samples")
 file_logger.info("Data split sizes - Train: %d, Validation: %d, Test: %d", X_train.shape[0], X_val.shape[0], X_test.shape[0])
 
-# Save the test set for generate_official_curves.py
-print("\nSaving official test set data for external curve generation...")
+# Save the test set for generate_curves.py
+print("\nSaving test set data for external curve generation...")
 try:
     # X_test_data is already a pandas DataFrame with column names from X
     x_test_save_path = os.path.join(results_dir, "X_test_data.csv")
@@ -184,9 +184,9 @@ try:
     X_test.to_csv(x_test_save_path, index=False) # Directly save the DataFrame
     np.save(y_test_save_path, y_test_encoded)
 
-    print(f"Official X_test data saved to: {x_test_save_path}")
-    print(f"Official y_test_encoded data saved to: {y_test_save_path}")
-    file_logger.info("Official test set (X_test_data.csv, y_test_encoded.npy) saved to: %s", results_dir)
+    print(f"X_test data saved to: {x_test_save_path}")
+    print(f"y_test_encoded data saved to: {y_test_save_path}")
+    file_logger.info("Test set (X_test_data.csv, y_test_encoded.npy) saved to: %s", results_dir)
 except Exception as e:
     print(f"Error saving test set data: {e}")
     file_logger.error("Error saving test set data: %s", e)

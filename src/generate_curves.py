@@ -13,16 +13,16 @@ import os
 BASE_PROJECT_DIR = ".." # Assumes this script is in src/
 MODEL_DIR = os.path.join(BASE_PROJECT_DIR, "models")
 RESULTS_DIR = os.path.join(BASE_PROJECT_DIR, "results") # Where X_test, y_test_encoded are saved
-OFFICIAL_PLOTS_DIR = os.path.join(RESULTS_DIR, "official_evaluation_curves")
+PLOTS_DIR = os.path.join(RESULTS_DIR, "evaluation_curves")
 
 # Number of top classes to generate plots for (e.g., for t-SNE consistency or report focus)
 N_TOP_CLASSES_TO_PLOT = 10
 
 # --- Create Output Directory if it doesn't exist ---
 # Ensures the directory for saving plots is ready
-if not os.path.exists(OFFICIAL_PLOTS_DIR):
-    os.makedirs(OFFICIAL_PLOTS_DIR)
-    print(f"Created directory: {OFFICIAL_PLOTS_DIR}")
+if not os.path.exists(PLOTS_DIR):
+    os.makedirs(PLOTS_DIR)
+    print(f"Created directory: {PLOTS_DIR}")
 
 # ------------------ PyTorch MLP ------------------
 
@@ -100,7 +100,7 @@ def plot_multiclass_roc_pr(y_true_bin_subset, y_scores_subset, class_names_subse
 # This function encapsulates loading test data and preparing subsets for plotting.
 def get_data_for_plotting():
     """
-    Loads the official test set data, full class names, and identifies the top N classes
+    Loads test set data, full class names, and identifies the top N classes
     for plotting based on their frequency in the test set.
     Returns:
         X_test_all (np.array): Full test feature set.
@@ -109,7 +109,7 @@ def get_data_for_plotting():
         top_n_class_names (list): List of names for the top N classes.
         class_names_full (np.array): Array of all original class names.
     """
-    print("Loading official test data...")
+    print("Loading test data...")
     # Load feature data (X_test)
     # Assumes X_test_data.csv was saved by model_training.py with feature names as columns
     X_test_df = pd.read_csv(os.path.join(RESULTS_DIR, "X_test_data.csv"))
@@ -170,7 +170,7 @@ if __name__ == '__main__':
         lr_scores_top_n_samples = lr_all_class_scores[mask_top_n_samples]
         lr_scores_for_plotting = lr_scores_top_n_samples[:, indices_of_top_n_in_full_list]
         plot_multiclass_roc_pr(y_test_binarized_top_n, lr_scores_for_plotting,
-                               top_n_class_names, model_name_lr, OFFICIAL_PLOTS_DIR)
+                               top_n_class_names, model_name_lr, PLOTS_DIR)
     except FileNotFoundError:
         print(f"ERROR: {model_name_lr} model not found at {lr_model_path}. Skipping.")
     except Exception as e:
@@ -189,7 +189,7 @@ if __name__ == '__main__':
         rf_scores_top_n_samples = rf_all_class_scores[mask_top_n_samples]
         rf_scores_for_plotting = rf_scores_top_n_samples[:, indices_of_top_n_in_full_list]
         plot_multiclass_roc_pr(y_test_binarized_top_n, rf_scores_for_plotting,
-                               top_n_class_names, model_name_rf, OFFICIAL_PLOTS_DIR)
+                               top_n_class_names, model_name_rf, PLOTS_DIR)
     except FileNotFoundError:
         print(f"ERROR: {model_name_rf} model not found at {rf_model_path}. Skipping.")
     except Exception as e:
@@ -205,24 +205,24 @@ if __name__ == '__main__':
         checkpoint = torch.load(mlp_model_path, map_location=device)
         input_dim = checkpoint['input_dim']
         num_classes_trained = checkpoint['num_classes']
-        official_mlp_model = MLPClassifier(input_dim, num_classes_trained).to(device)
-        official_mlp_model.load_state_dict(checkpoint['model_state_dict'])
-        official_mlp_model.eval()
+        mlp_model = MLPClassifier(input_dim, num_classes_trained).to(device)
+        mlp_model.load_state_dict(checkpoint['model_state_dict'])
+        mlp_model.eval()
 
         # PyTorch MLP still uses the NumPy array (X_test_all_numpy) converted to a tensor
         X_test_all_tensor = torch.tensor(X_test_all_numpy, dtype=torch.float32).to(device)
         with torch.no_grad():
-            outputs_logits = official_mlp_model(X_test_all_tensor)
+            outputs_logits = mlp_model(X_test_all_tensor)
             mlp_all_class_probabilities = torch.softmax(outputs_logits, dim=1).cpu().numpy()
 
         mlp_scores_top_n_samples = mlp_all_class_probabilities[mask_top_n_samples]
         mlp_scores_for_plotting = mlp_scores_top_n_samples[:, indices_of_top_n_in_full_list]
         plot_multiclass_roc_pr(y_test_binarized_top_n, mlp_scores_for_plotting,
-                               top_n_class_names, model_name_mlp, OFFICIAL_PLOTS_DIR)
+                               top_n_class_names, model_name_mlp, PLOTS_DIR)
     except FileNotFoundError:
         print(f"ERROR: {model_name_mlp} model not found at {mlp_model_path}. Skipping.")
     except Exception as e:
         print(f"ERROR processing {model_name_mlp}: {e}")
 
-    print(f"\nAll official ROC/PR curve plots generation attempt finished.")
-    print(f"Plots saved to: {OFFICIAL_PLOTS_DIR}")
+    print(f"\nAll ROC/PR curve plots generation attempt finished.")
+    print(f"Plots saved to: {PLOTS_DIR}")
