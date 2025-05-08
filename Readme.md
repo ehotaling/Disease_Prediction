@@ -36,33 +36,40 @@ Disease_Prediction/
 │   ├── lr_model.pkl
 │   ├── mlp_model.pth
 │   └── label_mapping.npy  # Maps predicted labels to disease names
-├── results/                # Stores generated plots and comparison tables
+├── results/               # Stores generated plots, tables, and evaluation data
 │   ├── model_comparison.csv
 │   ├── model_comparison_table.png
 │   ├── accuracy_comparison.png
 │   ├── f1_score_comparison.png
 │   ├── recall_comparison.png
 │   ├── precision_comparison.png
-│   ├── feature_scores_chi2.csv    # Feature scores from Chi-Squared test
-│   ├── feature_scores_mi.csv      # Feature scores from Mutual Information
-│   ├── feature_scores_rf.csv      # Feature scores from Random Forest Importance
-│   ├── feature_scores_rfe.csv     # Feature rankings from RFE
-│   ├── feature_scores_merged.csv  # Merged and normalized feature scores/rankings
-│   ├── top_features_chi2.png      # Plot of top features (Chi2)
-│   ├── top_features_mi.png        # Plot of top features (MI)
-│   ├── top_features_rf.png        # Plot of top features (RF Importance)
-│   ├── top_features_rfe.png       # Plot of top features (RFE Rank)
-│   ├── top_features_merged.png    # Plot of top features (Merged Score)
-│   ├── tsne_coordinates_top_N_classes.csv # t-SNE coordinates for top N classes
-│   ├── tsne_visualization_top_N_classes.png # t-SNE plot for top N classes 
+│   ├── feature_scores_chi2.csv
+│   ├── feature_scores_mi.csv
+│   ├── feature_scores_rf.csv
+│   ├── feature_scores_rfe.csv
+│   ├── feature_scores_merged.csv
+│   ├── top_features_chi2.png
+│   ├── top_features_mi.png
+│   ├── top_features_rf.png
+│   ├── top_features_rfe.png
+│   ├── top_features_merged.png
+│   ├── tsne_coordinates_top_N_classes.csv
+│   ├── tsne_visualization_top_N_classes.png
+│   ├── X_test_data.csv             # Saved test set features (output of model_training.py)
+│   ├── y_test_encoded.npy          # Saved encoded test set labels (output of model_training.py)
+│   ├── evaluation_curves/          # Stores detailed ROC and PR curve plots
+│   │   ├── Logistic_Regression_top_10_roc_pr.png
+│   │   ├── Random_Forest_top_10_roc_pr.png
+│   │   └── PyTorch_MLP_top_10_roc_pr.png
 │   └── important_training_summary.log # Log file from model_training.py
 ├── src/                     # Python scripts (all core logic lives here)
-│   ├── data_utils.py        # Utility functions for loading and basic cleaning (normalization, renaming) of data. Used by other scripts.
-│   ├── clean_data.py        # Performs EDA (distribution analysis, plotting) on cleaned data.
-│   ├── feature_selection.py # Calculates and compares feature importance using various methods.
-│   ├── model_training.py    # Trains, evaluates, and saves the classification models.
-│   ├── predict_cli.py       # Core prediction and API interaction logic
-│   └── TSNE.py              # Script for t-SNE visualization of symptom classes 
+│   ├── data_utils.py        # Utility functions for loading and basic cleaning.
+│   ├── clean_data.py        # Performs EDA on cleaned data.
+│   ├── feature_selection.py # Calculates and compares feature importance.
+│   ├── model_training.py    # Trains, evaluates, saves models, and saves test set data.
+│   ├── generate_curves.py   # Generates ROC/PR curves from saved models and test data.
+│   ├── predict_cli.py       # Core prediction and API interaction logic.
+│   └── TSNE.py              # Script for t-SNE visualization.
 ├── .env                     # Environment variables for API keys
 ├── .env.example             # Template for required environment variables
 ├── README.md
@@ -77,7 +84,7 @@ Disease_Prediction/
 
 Install required Python packages depending on your system architecture and available hardware:
 
-1.  ** CPU Users (no compatible GPU):**
+1.  **CPU Users (no compatible GPU):**
     Use this if you’re on a typical desktop or server without a CUDA-capable NVIDIA GPU.
     ```bash
     pip install -r requirements-cpu.txt
@@ -299,13 +306,12 @@ the results/ directory.
 
 ### 4. **model_training.py**
 
-Loads the cleaned data using data_utils.py, filters out very rare classes (< 3 samples, resulting in 748 classes used for training), 
-and then trains 3 classifiers: Logistic Regression, Random Forest, and MLP using PyTorch. It uses a train/validation/test split 
-(64%/16%/20%) and implements early stopping for the MLP based on validation accuracy to mitigate overfitting. 
-Trained models (rf_model.pkl, lr_model.pkl, mlp_model.pth) and the label mapping (label_mapping.npy) are automatically saved in the models/ directory.
+Loads the cleaned data using `data_utils.py`, filters out very rare classes (< 3 samples, resulting in 748 classes used for training), and then trains 3 classifiers: Logistic Regression, Random Forest, and MLP using PyTorch. It uses a train/validation/test split (64%/16%/20%) and implements early stopping for the MLP based on validation accuracy to mitigate overfitting.
+Trained models (`rf_model.pkl`, `lr_model.pkl`, `mlp_model.pth`) and the label mapping (`label_mapping.npy`) are automatically saved in the `models/` directory.
+**Additionally, this script now saves the official test dataset (`X_test.csv` and `y_test_encoded.npy`) to the `results/` directory, which is used by `generate_curves.py` for detailed evaluation.**
 
-- Generates a log file (important_training_summary.log) in the results/ directory summarizing key training steps and final metrics.
-- Also generates model comparison tables (CSV, PNG) and performance plots (Accuracy, Precision, Recall, F1) in the results/ directory.
+- Generates a log file (`important_training_summary.log`) in the `results/` directory summarizing key training steps and final metrics.
+- Also generates model comparison tables (CSV, PNG) and performance plots (Accuracy, Precision, Recall, F1) in the `results/` directory.
 
    ```bash
    python src/model_training.py
@@ -319,7 +325,50 @@ Trained models (rf_model.pkl, lr_model.pkl, mlp_model.pth) and the label mapping
 - **Comparison:** While Logistic Regression achieves the highest raw accuracy, its lower Macro F1 score suggests potential bias towards more frequent classes. Random Forest and the PyTorch MLP show more balanced performance across all classes (higher Macro F1), indicating better generalization on this imbalanced dataset. The MLP slightly edges out RF in Macro F1.
   - These results establish a solid performance baseline (accuracies ~84-86%, Macro F1 ~78-84%) for the project.
 
-### 5. **predict_cli.py**
+### 5. **generate_curves.py**
+
+After `model_training.py` has successfully run and saved the models and test data, run this script to generate detailed ROC (Receiver Operating Characteristic) and PR (Precision-Recall) curves for each of the trained models (Logistic Regression, Random Forest, PyTorch MLP).
+
+   ```bash
+   python src/generate_official_curves.py
+   ```
+*Prerequisites:*
+- Loads the pre-trained models and the official test set.
+- Calculates prediction probabilities for each model on the test set.
+- Identifies the top N most frequent classes in the test set (e.g., top 10).
+- Generates and saves combined ROC and PR curve plots for these top N classes for each model.
+    
+
+*Functionality:*
+- Loads the pre-trained models and the official test set.
+- Calculates prediction probabilities for each model on the test set.
+- Identifies the top N most frequent classes in the test set (e.g., top 10).
+- Generates and saves combined ROC and PR curve plots for these top N classes for each model.
+
+*Output:* 
+- Saves PNG plot files (e.g., Logistic_Regression_top_10_roc_pr.png) to the results/official_evaluation_curves/ directory. 
+- These plots provide a visual assessment of model performance in distinguishing between classes, highlighting true positive rates vs. false positive rates (ROC) and precision vs. recall (PR).
+
+#### Random Forest Analysis Insights:
+- Exceptional Performance on Common Diseases: The Random Forest model demonstrates outstanding discriminative ability for the 10 most frequent diseases in the test set, as evidenced by near-perfect AUC (≥0.98) and AP (≥0.94) scores.
+- Robustness to Imbalance (for these classes): The strong PR curve results suggest the model effectively handles any residual class imbalance within this subset of high-frequency classes, maintaining high precision even when identifying a large proportion of true cases.
+- Learned Features: This strong performance indicates that the Random Forest model has effectively learned discriminative symptom patterns for these common conditions from the training data.
+- Contribution to Overall Metrics: The model's proficiency on these well-represented classes likely contributes significantly to its overall Macro F1 score of 83.34%. Performance on the many rarer classes (not individually plotted here) would influence the aggregate scores.
+- Foundation for Further Analysis: These results provide a strong baseline and methodology for a more granular, per-class performance analysis across a wider range of diseases, including less frequent ones, which is noted as future work.
+
+#### Logistic Regression Analysis Insights:
+- Exceptional Performance on Dominant Classes: The Logistic Regression model exhibits outstanding, near-perfect discriminative ability for the 10 most frequent diseases in the test set. This explains its high overall accuracy. 
+- Effective Feature Learning for Common Conditions: For these common classes, the linear nature of Logistic Regression appears sufficient to find a separating hyperplane based on the symptom features.
+- Contrast with Macro F1 Score: The perfect scores here for common classes contrast with Logistic Regression's lower overall Macro F1 score (78.23%) when all 748 classes are considered. This strongly suggests that while LR excels at these well-represented and clearly separable top classes, its performance likely degrades significantly on the many rarer or less distinct classes in the long tail of the distribution. This degradation on rarer classes is what pulls down its macro-averaged F1 score.
+- Implications for Use: If the primary goal was to accurately classify only the most common diseases, Logistic Regression would appear to be an excellent choice. However, for a broader application requiring good performance across a wider range of (including less common) diseases, its limitations highlighted by the lower Macro F1 score become more apparent.
+
+#### PyTorch MLP Analysis Insights:
+- Excellent Performance on Common Diseases: Like the other models, the PyTorch MLP shows near-perfect performance in distinguishing the 10 most frequent diseases in the test set. Its ability to learn complex, non-linear relationships seems highly effective for these classes.
+- Strong Precision-Recall Balance: The high AP scores indicate that the MLP is not only good at finding positive cases (high recall) but also does so with high accuracy (high precision) for these common conditions.
+- Alignment with Macro F1: The MLP achieved the highest Macro F1 score (83.70%) among the three models. Its strong performance on these top 10 classes, as shown by these ROC/PR curves, contributes to this robust overall macro-averaged performance. This suggests the MLP might be slightly better at generalizing across a wider range of classes, including some less frequent ones, compared to Logistic Regression, though a full per-class analysis across all 748 classes would be needed to confirm the extent for rarer diseases.
+- Neural Network Efficacy: The results for these top classes validate that a relatively simple MLP architecture (one hidden layer) can be very effective in capturing the underlying symptom patterns for well-represented diseases in this dataset.
+
+### 6. **predict_cli.py**
 
    Loads the necessary components (trained models, label mapping, feature list derived from data loaded via data_utils.py) and provides an interactive command-line interface for real-time symptom prediction:
 
@@ -440,7 +489,7 @@ Work completed since the midpoint presentation includes:
 - **Dynamic Treatment Generation:** Implemented OpenAI API call (`client.responses.create`) within `predict_cli.py` to dynamically generate treatment recommendations based on the predicted disease, replacing the previous static lookup method. Includes necessary disclaimers. 
 - **Expanded Feature Selection:** Refactored `feature_selection.py` for the new dataset; added Mutual Information and RFE methods; implemented score normalization and merged ranking; added saving of scores and plots.
 - **Data Visualization (t-SNE):** Implemented `TSNE.py` script to visualize high-dimensional symptom data in 2D, focusing on the top N most frequent classes. Generated and analyzed plots showing class separability for these common diseases, with outputs saved to `results/`. (See "TSNE.py" section in "Order of Execution" for detailed analysis).
-
+- **Detailed Model Evaluation Curves:** Implemented generation of ROC (Receiver Operating Characteristic) and PR (Precision-Recall) curves for each trained model (Logistic Regression, Random Forest, PyTorch MLP). These curves visualize model performance for the top N classes, offering deeper insights into their discriminative power and trade-offs between true positives/false positives and precision/recall. Plots are saved to `results/official_evaluation_curves/`.
 ---
 
 ## To-Do List (Prioritized)
@@ -475,8 +524,9 @@ Work completed since the midpoint presentation includes:
     - Tune hyperparameters for each model (e.g., grid search or random search)
 
 8.  **Enhance Evaluation**
-    Priority: Low
-    - Add confusion matrices, ROC curves, top-k (e.g., top-3) predictions
+    Priority: Low 
+    - Status: **Partially Completed.** ROC curves and PR curves implemented for top N classes.
+    - Add confusion matrices, top-k (e.g., top-3) predictions
     - Conduct per-class analysis to assess where models perform differently
 
 9.  **Finalize Presentation Visuals**
@@ -527,11 +577,11 @@ Work completed since the midpoint presentation includes:
 - **Early stopping based on validation accuracy** is implemented for the PyTorch MLP to mitigate overfitting during its training.
 - Evaluation on the final test set provides an estimate of generalization, but further analysis (like k-fold cross-validation - Task #6) could provide more robust estimates. Current test performance (accuracies ~84-86%, Macro F1 ~78-84%) doesn't show signs of *severe* overfitting.
 
-### C. Future Work
+### C. Ideas for Future Work
 - **Test on Real-World Data:** Evaluate the pipeline using real clinical datasets (if available) to assess true performance.
 - **Address Class Imbalance:** Implement techniques specifically designed for imbalanced datasets (e.g., resampling methods like SMOTE, class-weighted loss functions).
 - **Improve Model Training (Task #6):** Apply k-fold cross-validation for more robust evaluation. Tune hyperparameters for each model using techniques like grid search or randomized search. Explore more complex model architectures.
-- **Enhance Evaluation (Task #7):** Generate confusion matrices, ROC curves (potentially using one-vs-rest), and calculate top-k accuracy. Conduct detailed per-class analysis to understand performance on specific diseases, especially rare ones.
+- **Enhance Evaluation (Task #7):** Generate confusion matrices, and calculate top-k accuracy. Conduct detailed per-class analysis to understand performance on specific diseases, especially rare ones.
 - **Expand Feature Selection (Task #5):** Implement and compare additional feature selection methods (Mutual Information, RFE) and analyze their impact on performance and training time.
 - **Probabilistic Outputs:** Modify models/output to provide prediction probabilities or confidence scores.
 - **Multi-Label Classification:** Extend the system to handle cases where a patient might present with symptoms indicative of multiple simultaneous conditions.
@@ -565,7 +615,8 @@ Work completed since the midpoint presentation includes:
 - Fully functioning Python CLI-based predictor with LLM symptom interpretation and dynamic, AI-generated treatment recommendations (via OpenAI API). 
 - Persisted models for Random Forest, Logistic Regression, and MLP  
 - Bar charts and comparative visuals for accuracy, precision, recall, and F1  
-- Presentation deck with full methodology, results, visualizations, and critical analysis  
-- Clear documentation for both code and findings. 
+- ROC and PR curve plots for each model, visualizing performance on top N classes.
+- Presentation deck with full methodology, results, visualizations, and analysis  
+
 
 
