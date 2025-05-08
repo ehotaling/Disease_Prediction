@@ -1,5 +1,5 @@
 # Disease Prediction from Symptoms  
-**Capstone Data Mining Project – Spring 2025**
+**ICSI 431 Data Mining – Spring 2025**
 
 ---
 
@@ -22,8 +22,10 @@ feature selection, model training, and prediction via a CLI interface.
 
 ## Dataset Link
 Before running the project, you must manually download the dataset used for training and prediction. 
-This dataset is not included in the repository due to its size and licensing.
-
+This dataset is not included in the repository due to its size and licensing. Link is here: 
+[Dataset](https://www.kaggle.com/datasets/dhivyeshrk/diseases-and-symptoms-dataset?resource=download)
+You will need to rename Final_Augmented_dataset_Diseases_and_Symptoms.csv to training_data.csv,
+create a data/ directory and place training_data.csv in there. 
 
 ##  Project Structure
 
@@ -161,7 +163,8 @@ OPENAI_API_KEY=your_openai_api_key_here
 
 ---
 
-
+## Important Note
+If you do not have an OpenAI API key you will not be able to run predict_cli.py, our CLI for this project. Please get an API Key.
 
 ##  Order of Execution
 
@@ -214,8 +217,6 @@ Key configurations in TSNE.py:
         scikit-learn (which uses Loky as a backend for joblib). This is configured at the beginning of the script 
         (e.g., "8" in the analyzed run) and can influence the speed of computations like t-SNE when `n_jobs=-1` 
         is used. Adjust this based on your system's capabilities.
-
-
 
 
 #### Analysis Insights (from a run with N_TOP_CLASSES=10, using full data for these classes)
@@ -372,7 +373,7 @@ The Random Forest model demonstrates outstanding discriminative ability for the 
 
    - Accepts user input (natural language symptoms).
    - Interprets symptoms using GPT-4o mini via OpenAI API.
-   - Allows user to select prediction model (RF, LR, MLP).
+   - Allows user to select the prediction model (RF, LR, MLP).
    - Predicts disease using the selected pre-trained model.
    - **Generates a concise treatment recommendation for the predicted disease using the OpenAI API.**
    - **Important Disclaimer:** Treatment recommendations are AI-generated and *not* a substitute for professional medical advice.
